@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getCycles } from './services/api'
+import CycleDetail from './components/CycleDetail'
 import './App.css'
 
 function formatNumber(value) {
@@ -40,6 +41,8 @@ function App() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedCycleId, setSelectedCycleId] =
+    useState(null)
 
   useEffect(() => {
     let active = true
@@ -69,11 +72,50 @@ function App() {
     }
   }, [])
 
+  if (selectedCycleId) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">
+              ES
+            </span>
+
+            <div>
+              <p className="brand-name">
+                EnergyShark
+              </p>
+
+              <p className="brand-subtitle">
+                Panel de administración
+              </p>
+            </div>
+          </div>
+
+          <div className="city-badge">
+            King's Landing · KLD
+          </div>
+        </header>
+
+        <main className="page">
+          <CycleDetail
+            cycleId={selectedCycleId}
+            onBack={() =>
+              setSelectedCycleId(null)
+            }
+          />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark">ES</span>
+          <span className="brand-mark">
+            ES
+          </span>
 
           <div>
             <p className="brand-name">
@@ -138,7 +180,9 @@ function App() {
           !error &&
           cycles.length === 0 && (
             <section className="state-card">
-              <h2>No hay ciclos registrados</h2>
+              <h2>
+                No hay ciclos registrados
+              </h2>
 
               <p>
                 Los ciclos aparecerán aquí cuando
@@ -157,8 +201,12 @@ function App() {
                     <tr>
                       <th>Ciclo</th>
                       <th>Budget</th>
-                      <th>Balance energético</th>
-                      <th>Última operación</th>
+                      <th>
+                        Balance energético
+                      </th>
+                      <th>
+                        Última operación
+                      </th>
                       <th>Fecha</th>
                       <th>Reporte</th>
                     </tr>
@@ -166,7 +214,15 @@ function App() {
 
                   <tbody>
                     {cycles.map((cycle) => (
-                      <tr key={cycle.cycleId}>
+                      <tr
+                        key={cycle.cycleId}
+                        className="clickable-row"
+                        onClick={() =>
+                          setSelectedCycleId(
+                            cycle.cycleId,
+                          )
+                        }
+                      >
                         <td>
                           <strong className="cycle-id">
                             {cycle.cycleId}
@@ -177,6 +233,7 @@ function App() {
                           {formatNumber(
                             cycle.budgetBalance,
                           )}
+
                           <span className="unit">
                             {' '}
                             créditos
