@@ -10,7 +10,9 @@ export async function apiFetch(path, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, options)
 
   if (!response.ok) {
-    throw new Error(`API request failed with status ${response.status}`)
+    throw new Error(
+      `API request failed with status ${response.status}`,
+    )
   }
 
   return response.json()
@@ -18,4 +20,8 @@ export async function apiFetch(path, options = {}) {
 
 export function getHealth() {
   return apiFetch('/health')
+}
+
+export function getCycles() {
+  return apiFetch('/cycles')
 }
