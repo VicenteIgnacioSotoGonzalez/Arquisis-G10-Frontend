@@ -25,3 +25,9 @@ export function getHealth() {
 export function getCycles() {
   return apiFetch('/cycles')
 }
+
+export function getCycleDetail(cycleId) {
+  return apiFetch(
+    `/cycles/${encodeURIComponent(cycleId)}`,
+  )
+}
