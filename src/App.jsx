@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useAuth0 } from '@auth0/auth0-react'
 import { getCycles } from './services/api'
+import { setTokenGetter } from './services/auth'
+import AuthButton from './components/AuthButton'
 import CycleDetail from './components/CycleDetail'
 import './App.css'
 
@@ -43,6 +46,19 @@ function App() {
   const [error, setError] = useState(null)
   const [selectedCycleId, setSelectedCycleId] =
     useState(null)
+
+  const {
+    getAccessTokenSilently,
+    isAuthenticated,
+  } = useAuth0()
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setTokenGetter(() => getAccessTokenSilently())
+    } else {
+      setTokenGetter(null)
+    }
+  }, [isAuthenticated, getAccessTokenSilently])
 
   useEffect(() => {
     let active = true
@@ -95,6 +111,8 @@ function App() {
           <div className="city-badge">
             King's Landing · KLD
           </div>
+
+          <AuthButton />
         </header>
 
         <main className="page">
@@ -128,13 +146,15 @@ function App() {
           </div>
         </div>
 
-        <div className="city-badge">
-          King's Landing · KLD
-        </div>
-      </header>
+          <div className="city-badge">
+            King's Landing · KLD
+          </div>
 
-      <main className="page">
-        <section className="page-header">
+          <AuthButton />
+        </header>
+
+        <main className="page">
+          <section className="page-header">
           <div>
             <p className="eyebrow">
               Operación energética
