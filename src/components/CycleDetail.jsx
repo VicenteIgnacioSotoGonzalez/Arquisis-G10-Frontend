@@ -108,6 +108,52 @@ function LedgerTable({ entries }) {
   )
 }
 
+function formatDirection(value) {
+  if (value === 'give') {
+    return 'Entregar'
+  }
+
+  if (value === 'take') {
+    return 'Recibir'
+  }
+
+  return value ?? '—'
+}
+
+function negotiationStatus(value) {
+  switch (value) {
+    case 'PROPOSED':
+      return {
+        label: 'Propuesta',
+        className: 'status status-pending',
+      }
+
+    case 'ACKNOWLEDGED':
+      return {
+        label: 'Aceptada',
+        className: 'status status-pending',
+      }
+
+    case 'CONFIRMED':
+      return {
+        label: 'Confirmada',
+        className: 'status status-success',
+      }
+
+    case 'PAID':
+      return {
+        label: 'Pagada',
+        className: 'status status-success',
+      }
+
+    default:
+      return {
+        label: value ?? '—',
+        className: 'status',
+      }
+  }
+}
+
 function CycleDetail({ cycleId, onBack }) {
   const [cycle, setCycle] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -347,46 +393,67 @@ function CycleDetail({ cycleId, onBack }) {
                   <th>
                     Precio confirmado
                   </th>
+
+                  <th>Vence</th>
                 </tr>
               </thead>
 
               <tbody>
                 {cycle.negotiations.map(
-                  (negotiation) => (
-                    <tr key={negotiation.id}>
-                      <td>
-                        {negotiation.direction}
-                      </td>
+                  (negotiation) => {
+                    const status =
+                      negotiationStatus(
+                        negotiation.status,
+                      )
 
-                      <td>
-                        {formatNumber(
-                          negotiation.requestedQuantity,
-                        )}
-                      </td>
+                    return (
+                      <tr key={negotiation.id}>
+                        <td>
+                          {formatDirection(
+                            negotiation.direction,
+                          )}
+                        </td>
 
-                      <td>
-                        {formatNumber(
-                          negotiation.offeredPrice,
-                        )}
-                      </td>
+                        <td>
+                          {formatNumber(
+                            negotiation.requestedQuantity,
+                          )}
+                        </td>
 
-                      <td>
-                        {negotiation.status}
-                      </td>
+                        <td>
+                          {formatNumber(
+                            negotiation.offeredPrice,
+                          )}
+                        </td>
 
-                      <td>
-                        {formatNumber(
-                          negotiation.confirmedEnergy,
-                        )}
-                      </td>
+                        <td>
+                          <span
+                            className={status.className}
+                          >
+                            {status.label}
+                          </span>
+                        </td>
 
-                      <td>
-                        {formatNumber(
-                          negotiation.confirmedPrice,
-                        )}
-                      </td>
-                    </tr>
-                  ),
+                        <td>
+                          {formatNumber(
+                            negotiation.confirmedEnergy,
+                          )}
+                        </td>
+
+                        <td>
+                          {formatNumber(
+                            negotiation.confirmedPrice,
+                          )}
+                        </td>
+
+                        <td>
+                          {formatDate(
+                            negotiation.deadlineAt,
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  },
                 )}
               </tbody>
             </table>
