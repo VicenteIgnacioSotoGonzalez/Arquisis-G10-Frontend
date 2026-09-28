@@ -43,3 +43,33 @@ export function getCycleDetail(cycleId) {
     `/cycles/${encodeURIComponent(cycleId)}`,
   )
 }
+
+export function getConnectivity() {
+  return apiFetch('/connectivity')
+}
+
+export function createNegotiation(body) {
+  return apiFetch('/negotiations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+}
+
+export function getAnomalies(filters = {}) {
+  const params = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== null && value !== undefined && value !== '') {
+      params.append(key, value)
+    }
+  }
+
+  const query = params.toString()
+
+  return apiFetch(
+    query ? `/audit/anomalies?${query}` : '/audit/anomalies',
+  )
+}

@@ -3,7 +3,10 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { getCycles } from './services/api'
 import { setTokenGetter } from './services/auth'
 import AuthButton from './components/AuthButton'
+import ConnectivityView from './components/ConnectivityView'
 import CycleDetail from './components/CycleDetail'
+import NegotiationForm from './components/NegotiationForm'
+import AnomaliesView from './components/AnomaliesView'
 import './App.css'
 
 function formatNumber(value) {
@@ -46,6 +49,12 @@ function App() {
   const [error, setError] = useState(null)
   const [selectedCycleId, setSelectedCycleId] =
     useState(null)
+  const [showConnectivity, setShowConnectivity] =
+    useState(false)
+  const [showNegotiationForm, setShowNegotiationForm] =
+    useState(false)
+  const [showAnomalies, setShowAnomalies] =
+    useState(false)
 
   const {
     getAccessTokenSilently,
@@ -127,6 +136,118 @@ function App() {
     )
   }
 
+  if (showConnectivity) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">
+              ES
+            </span>
+
+            <div>
+              <p className="brand-name">
+                EnergyShark
+              </p>
+
+              <p className="brand-subtitle">
+                Panel de administración
+              </p>
+            </div>
+          </div>
+
+          <div className="city-badge">
+            King's Landing · KLD
+          </div>
+        </header>
+
+        <main className="page">
+          <ConnectivityView
+            onBack={() =>
+              setShowConnectivity(false)
+            }
+          />
+        </main>
+      </div>
+    )
+  }
+
+  if (showNegotiationForm) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">
+              ES
+            </span>
+
+            <div>
+              <p className="brand-name">
+                EnergyShark
+              </p>
+
+              <p className="brand-subtitle">
+                Panel de administración
+              </p>
+            </div>
+          </div>
+
+          <div className="city-badge">
+            King's Landing · KLD
+          </div>
+
+          <AuthButton />
+        </header>
+
+        <main className="page">
+          <NegotiationForm
+            onBack={() =>
+              setShowNegotiationForm(false)
+            }
+          />
+        </main>
+      </div>
+    )
+  }
+
+  if (showAnomalies) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">
+              ES
+            </span>
+
+            <div>
+              <p className="brand-name">
+                EnergyShark
+              </p>
+
+              <p className="brand-subtitle">
+                Panel de administración
+              </p>
+            </div>
+          </div>
+
+          <div className="city-badge">
+            King's Landing · KLD
+          </div>
+
+          <AuthButton />
+        </header>
+
+        <main className="page">
+          <AnomaliesView
+            onBack={() =>
+              setShowAnomalies(false)
+            }
+          />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -177,6 +298,33 @@ function App() {
               <strong>{total}</strong>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowConnectivity(true)
+            }
+          >
+            Ver conectividad
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowNegotiationForm(true)
+            }
+          >
+            Nueva negociación
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowAnomalies(true)
+            }
+          >
+            Ver anomalías
+          </button>
         </section>
 
         {loading && (
