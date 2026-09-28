@@ -47,3 +47,13 @@ export function getCycleDetail(cycleId) {
 export function getConnectivity() {
   return apiFetch('/connectivity')
 }
+
+export function createNegotiation(body) {
+  return apiFetch('/negotiations', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+}

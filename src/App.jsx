@@ -5,6 +5,7 @@ import { setTokenGetter } from './services/auth'
 import AuthButton from './components/AuthButton'
 import ConnectivityView from './components/ConnectivityView'
 import CycleDetail from './components/CycleDetail'
+import NegotiationForm from './components/NegotiationForm'
 import './App.css'
 
 function formatNumber(value) {
@@ -48,6 +49,8 @@ function App() {
   const [selectedCycleId, setSelectedCycleId] =
     useState(null)
   const [showConnectivity, setShowConnectivity] =
+    useState(false)
+  const [showNegotiationForm, setShowNegotiationForm] =
     useState(false)
 
   const {
@@ -166,6 +169,44 @@ function App() {
     )
   }
 
+  if (showNegotiationForm) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">
+              ES
+            </span>
+
+            <div>
+              <p className="brand-name">
+                EnergyShark
+              </p>
+
+              <p className="brand-subtitle">
+                Panel de administración
+              </p>
+            </div>
+          </div>
+
+          <div className="city-badge">
+            King's Landing · KLD
+          </div>
+
+          <AuthButton />
+        </header>
+
+        <main className="page">
+          <NegotiationForm
+            onBack={() =>
+              setShowNegotiationForm(false)
+            }
+          />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -224,6 +265,15 @@ function App() {
             }
           >
             Ver conectividad
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowNegotiationForm(true)
+            }
+          >
+            Nueva negociación
           </button>
         </section>
 
