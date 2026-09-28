@@ -57,3 +57,19 @@ export function createNegotiation(body) {
     body: JSON.stringify(body),
   })
 }
+
+export function getAnomalies(filters = {}) {
+  const params = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== null && value !== undefined && value !== '') {
+      params.append(key, value)
+    }
+  }
+
+  const query = params.toString()
+
+  return apiFetch(
+    query ? `/audit/anomalies?${query}` : '/audit/anomalies',
+  )
+}

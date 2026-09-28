@@ -6,6 +6,7 @@ import AuthButton from './components/AuthButton'
 import ConnectivityView from './components/ConnectivityView'
 import CycleDetail from './components/CycleDetail'
 import NegotiationForm from './components/NegotiationForm'
+import AnomaliesView from './components/AnomaliesView'
 import './App.css'
 
 function formatNumber(value) {
@@ -51,6 +52,8 @@ function App() {
   const [showConnectivity, setShowConnectivity] =
     useState(false)
   const [showNegotiationForm, setShowNegotiationForm] =
+    useState(false)
+  const [showAnomalies, setShowAnomalies] =
     useState(false)
 
   const {
@@ -207,6 +210,44 @@ function App() {
     )
   }
 
+  if (showAnomalies) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">
+              ES
+            </span>
+
+            <div>
+              <p className="brand-name">
+                EnergyShark
+              </p>
+
+              <p className="brand-subtitle">
+                Panel de administración
+              </p>
+            </div>
+          </div>
+
+          <div className="city-badge">
+            King's Landing · KLD
+          </div>
+
+          <AuthButton />
+        </header>
+
+        <main className="page">
+          <AnomaliesView
+            onBack={() =>
+              setShowAnomalies(false)
+            }
+          />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -274,6 +315,15 @@ function App() {
             }
           >
             Nueva negociación
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowAnomalies(true)
+            }
+          >
+            Ver anomalías
           </button>
         </section>
 
