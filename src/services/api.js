@@ -43,3 +43,7 @@ export function getCycleDetail(cycleId) {
     `/cycles/${encodeURIComponent(cycleId)}`,
   )
 }
+
+export function getConnectivity() {
+  return apiFetch('/connectivity')
+}

@@ -3,6 +3,7 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { getCycles } from './services/api'
 import { setTokenGetter } from './services/auth'
 import AuthButton from './components/AuthButton'
+import ConnectivityView from './components/ConnectivityView'
 import CycleDetail from './components/CycleDetail'
 import './App.css'
 
@@ -46,6 +47,8 @@ function App() {
   const [error, setError] = useState(null)
   const [selectedCycleId, setSelectedCycleId] =
     useState(null)
+  const [showConnectivity, setShowConnectivity] =
+    useState(false)
 
   const {
     getAccessTokenSilently,
@@ -127,6 +130,42 @@ function App() {
     )
   }
 
+  if (showConnectivity) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">
+              ES
+            </span>
+
+            <div>
+              <p className="brand-name">
+                EnergyShark
+              </p>
+
+              <p className="brand-subtitle">
+                Panel de administración
+              </p>
+            </div>
+          </div>
+
+          <div className="city-badge">
+            King's Landing · KLD
+          </div>
+        </header>
+
+        <main className="page">
+          <ConnectivityView
+            onBack={() =>
+              setShowConnectivity(false)
+            }
+          />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -177,6 +216,15 @@ function App() {
               <strong>{total}</strong>
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowConnectivity(true)
+            }
+          >
+            Ver conectividad
+          </button>
         </section>
 
         {loading && (
