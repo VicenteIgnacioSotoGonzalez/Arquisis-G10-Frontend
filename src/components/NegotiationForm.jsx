@@ -111,7 +111,7 @@ function NegotiationForm({ onBack }) {
         )
       } else if (err.message.includes('status 422')) {
         setFormError(
-          'Datos inválidos: revisa cantidad y precio.',
+          'Revisa que los datos son correctos o si la ventana de negociación sigue abierta.',
         )
       } else {
         setFormError(err.message)
