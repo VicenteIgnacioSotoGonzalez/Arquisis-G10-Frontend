@@ -7,6 +7,7 @@ import ConnectivityView from './components/ConnectivityView'
 import CycleDetail from './components/CycleDetail'
 import NegotiationForm from './components/NegotiationForm'
 import AnomaliesView from './components/AnomaliesView'
+import NegotiationWindowBanner from './components/NegotiationWindowBanner'
 import './App.css'
 
 function formatNumber(value) {
@@ -275,7 +276,9 @@ function App() {
         </header>
 
         <main className="page">
-          <section className="page-header">
+            <NegotiationWindowBanner />
+
+            <section className="page-header">
           <div>
             <p className="eyebrow">
               Operación energética
