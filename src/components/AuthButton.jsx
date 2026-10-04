@@ -21,8 +21,12 @@ function AuthButton() {
     return (
       <button
         type="button"
+        className="auth-button auth-button-primary"
         onClick={() => loginWithRedirect()}
       >
+        <span className="auth-button-icon">
+          →
+        </span>
         Iniciar sesión
       </button>
     )
@@ -36,6 +40,7 @@ function AuthButton() {
 
       <button
         type="button"
+        className="auth-button auth-button-secondary"
         onClick={() =>
           logout({
             logoutParams: {

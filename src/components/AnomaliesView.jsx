@@ -96,25 +96,34 @@ function AnomaliesView({ onBack }) {
     event.preventDefault()
     setError(null)
     setLoading(true)
-    setAppliedFilters(filters)
+    setAppliedFilters({ ...filters })
   }
 
   function handleClear() {
-    setFilters(EMPTY_FILTERS)
+    setFilters({ ...EMPTY_FILTERS })
     setError(null)
     setLoading(true)
-    setAppliedFilters(EMPTY_FILTERS)
+    setAppliedFilters({ ...EMPTY_FILTERS })
   }
 
   return (
     <div>
-      <section className="page-header">
+      <section className="page-header anomalies-page-header">
         <div>
           <p className="eyebrow">
             Auditoría de mensajes
           </p>
 
-          <h1>Duplicados y descartes</h1>
+          <div className="module-title-row">
+            <h1>Duplicados y descartes</h1>
+            <button
+              className="module-back-button"
+              type="button"
+              onClick={onBack}
+            >
+              ← Volver
+            </button>
+          </div>
 
           <p className="page-description">
             Mensajes duplicados, descartados o
@@ -134,9 +143,12 @@ function AnomaliesView({ onBack }) {
         )}
       </section>
 
-      <section className="cycles-card">
-        <form onSubmit={handleSubmit}>
-          <label>
+      <section className="anomalies-filter-card">
+        <form
+          className="anomalies-filter-form"
+          onSubmit={handleSubmit}
+        >
+          <label className="anomalies-filter-field">
             Estado
             <select
               name="status"
@@ -161,7 +173,7 @@ function AnomaliesView({ onBack }) {
             </select>
           </label>
 
-          <label>
+          <label className="anomalies-filter-field">
             Tipo de mensaje
             <input
               type="text"
@@ -172,7 +184,7 @@ function AnomaliesView({ onBack }) {
             />
           </label>
 
-          <label>
+          <label className="anomalies-filter-field">
             idpk
             <input
               type="text"
@@ -183,7 +195,7 @@ function AnomaliesView({ onBack }) {
             />
           </label>
 
-          <label>
+          <label className="anomalies-filter-field">
             msgId
             <input
               type="text"
@@ -194,17 +206,23 @@ function AnomaliesView({ onBack }) {
             />
           </label>
 
-          <button type="submit">
-            Filtrar
-          </button>
+          <div className="anomalies-filter-actions">
+            <button
+              className="anomalies-filter-submit"
+              type="submit"
+            >
+              Aplicar filtros
+            </button>
 
-          <button type="button" onClick={handleClear}>
-            Limpiar
-          </button>
+            <button
+              className="anomalies-filter-secondary"
+              type="button"
+              onClick={handleClear}
+            >
+              Limpiar
+            </button>
 
-          <button type="button" onClick={onBack}>
-            Volver
-          </button>
+          </div>
         </form>
       </section>
 
