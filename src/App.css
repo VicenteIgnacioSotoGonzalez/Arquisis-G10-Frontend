@@ -130,6 +130,167 @@
 }
 
 /* =========================
+   NEGOTIATION WINDOW
+   ========================= */
+
+.negotiation-banner {
+  width: 100%;
+  margin-bottom: 24px;
+  padding: 16px 18px;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  border: 1px solid;
+  border-radius: 12px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.negotiation-banner-dot {
+  width: 12px;
+  height: 12px;
+
+  flex: 0 0 12px;
+
+  border-radius: 50%;
+}
+
+.negotiation-banner strong {
+  display: block;
+
+  margin-bottom: 3px;
+
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.negotiation-banner p {
+  margin: 0;
+
+  font-size: 12px;
+  line-height: 1.5;
+
+  opacity: 0.8;
+}
+
+/* Ventana activa */
+
+.negotiation-banner-active {
+  border-color: #b7dfc8;
+
+  background: #edf9f2;
+  color: #17633f;
+}
+
+.negotiation-banner-active
+.negotiation-banner-dot {
+  background: #22985f;
+}
+
+/* Ventana cerrada */
+
+.negotiation-banner-inactive {
+  border-color: #efc3bf;
+
+  background: #fff1f0;
+  color: #9e3028;
+}
+
+.negotiation-banner-inactive
+.negotiation-banner-dot {
+  background: #c94238;
+}
+
+/* Cargando */
+
+.negotiation-banner-loading {
+  border-color: #dce3eb;
+
+  background: #f7f9fc;
+  color: #68788c;
+}
+
+.negotiation-banner-loading
+.negotiation-banner-dot {
+  background: #8a98a9;
+}
+
+/* Error consultando API */
+
+.negotiation-banner-error {
+  border-color: #e4d2a7;
+
+  background: #fff9eb;
+  color: #88651b;
+}
+
+.negotiation-banner-error
+.negotiation-banner-dot {
+  background: #c59227;
+}
+
+.negotiation-banner-content {
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  min-width: 0;
+}
+
+.negotiation-countdown {
+  flex-shrink: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  min-width: 130px;
+}
+
+.negotiation-countdown span {
+  margin-bottom: 2px;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  opacity: 0.75;
+}
+
+.negotiation-countdown strong {
+  margin: 0;
+
+  font-size: 22px;
+  font-weight: 800;
+
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+@media (max-width: 600px) {
+  .negotiation-banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 10px;
+  }
+
+  .negotiation-countdown {
+    align-items: flex-start;
+  }
+}
+
+/* =========================
    HISTORIAL
    ========================= */
 
