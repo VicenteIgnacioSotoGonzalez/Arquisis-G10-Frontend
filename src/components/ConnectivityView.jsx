@@ -59,13 +59,62 @@ function ConnectivityView({ onBack }) {
     setReloadKey((key) => key + 1)
   }
 
+  const heading = (
+    <section className="page-header connectivity-page-header">
+      <div>
+        <p className="eyebrow">
+          Red energética
+        </p>
+
+        <div className="module-title-row">
+          <h1>Conectividad</h1>
+          <button
+            className="module-back-button"
+            type="button"
+            onClick={onBack}
+          >
+            ← Volver
+          </button>
+        </div>
+
+        <p className="page-description">
+          Destinos alcanzables, distancia,
+          costo de transporte y estado según
+          la última tabla recibida.
+        </p>
+
+        {connectivity?.timestamp && (
+          <p className="page-description">
+            Actualizado:{' '}
+            {formatDate(connectivity.timestamp)}
+          </p>
+        )}
+      </div>
+
+      {!loading && !error && (
+        <div className="total-card">
+          <span className="total-label">
+            Destinos
+          </span>
+
+          <strong>
+            {connectivity.total ?? connectivity.items?.length ?? 0}
+          </strong>
+        </div>
+      )}
+    </section>
+  )
+
   if (loading) {
     return (
-      <section className="state-card">
-        <div className="spinner" />
+      <>
+        {heading}
+        <section className="state-card">
+          <div className="spinner" />
 
-        <p>Cargando conectividad...</p>
-      </section>
+          <p>Cargando conectividad...</p>
+        </section>
+      </>
     )
   }
 
@@ -73,27 +122,26 @@ function ConnectivityView({ onBack }) {
     const missingTable = error.includes('status 404')
 
     return (
-      <section className="state-card error-card">
-        <h2>
-          {missingTable
-            ? 'No hay tabla de distancias disponible'
-            : 'No fue posible cargar la conectividad'}
-        </h2>
+      <>
+        {heading}
+        <section className="state-card error-card">
+          <h2>
+            {missingTable
+              ? 'No hay tabla de distancias disponible'
+              : 'No fue posible cargar la conectividad'}
+          </h2>
 
-        <p>
-          {missingTable
-            ? 'Aún no se recibe una distance-table desde la central.'
-            : error}
-        </p>
+          <p>
+            {missingTable
+              ? 'Aún no se recibe una distance-table desde la central.'
+              : error}
+          </p>
 
-        <button type="button" onClick={handleRetry}>
-          Reintentar
-        </button>
-
-        <button type="button" onClick={onBack}>
-          Volver
-        </button>
-      </section>
+          <button type="button" onClick={handleRetry}>
+            Reintentar
+          </button>
+        </section>
+      </>
     )
   }
 
@@ -101,53 +149,23 @@ function ConnectivityView({ onBack }) {
 
   if (items.length === 0) {
     return (
-      <section className="state-card">
-        <h2>Sin destinos registrados</h2>
+      <>
+        {heading}
+        <section className="state-card">
+          <h2>Sin destinos registrados</h2>
 
-        <p>
-          La tabla de distancias no contiene
-          destinos para mostrar.
-        </p>
-
-        <button type="button" onClick={onBack}>
-          Volver
-        </button>
-      </section>
+          <p>
+            La tabla de distancias no contiene
+            destinos para mostrar.
+          </p>
+        </section>
+      </>
     )
   }
 
   return (
     <div>
-      <section className="page-header">
-        <div>
-          <p className="eyebrow">
-            Red energética
-          </p>
-
-          <h1>Conectividad</h1>
-
-          <p className="page-description">
-            Destinos alcanzables, distancia,
-            costo de transporte y estado según
-            la última tabla recibida.
-          </p>
-
-          <p className="page-description">
-            Actualizado:{' '}
-            {formatDate(connectivity.timestamp)}
-          </p>
-        </div>
-
-        <div className="total-card">
-          <span className="total-label">
-            Destinos
-          </span>
-
-          <strong>
-            {connectivity.total ?? items.length}
-          </strong>
-        </div>
-      </section>
+      {heading}
 
       <section className="cycles-card">
         <div className="table-wrapper">
@@ -208,9 +226,6 @@ function ConnectivityView({ onBack }) {
         </div>
       </section>
 
-      <button type="button" onClick={onBack}>
-        Volver
-      </button>
     </div>
   )
 }

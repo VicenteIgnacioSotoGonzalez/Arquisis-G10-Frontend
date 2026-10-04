@@ -186,24 +186,52 @@ function CycleDetail({ cycleId, onBack }) {
 
   if (loading) {
     return (
-      <section className="state-card">
-        <div className="spinner" />
-        <p>Cargando detalle del ciclo...</p>
-      </section>
+      <>
+        <section className="page-header">
+          <div>
+            <p className="eyebrow">
+              Detalle del ciclo
+            </p>
+            <div className="module-title-row">
+              <h1>{cycleId}</h1>
+              <button
+                className="module-back-button"
+                type="button"
+                onClick={onBack}
+              >
+                ← Volver
+              </button>
+            </div>
+          </div>
+        </section>
+        <section className="state-card">
+          <div className="spinner" />
+          <p>Cargando detalle del ciclo...</p>
+        </section>
+      </>
     )
   }
 
   if (error) {
     return (
       <>
-        <button
-          className="back-button"
-          type="button"
-          onClick={onBack}
-        >
-          ← Volver al historial
-        </button>
-
+        <section className="page-header">
+          <div>
+            <p className="eyebrow">
+              Detalle del ciclo
+            </p>
+            <div className="module-title-row">
+              <h1>{cycleId}</h1>
+              <button
+                className="module-back-button"
+                type="button"
+                onClick={onBack}
+              >
+                ← Volver
+              </button>
+            </div>
+          </div>
+        </section>
         <section className="state-card error-card">
           <h2>
             No fue posible cargar el ciclo
@@ -220,21 +248,22 @@ function CycleDetail({ cycleId, onBack }) {
 
   return (
     <div className="cycle-detail">
-      <button
-        className="back-button"
-        type="button"
-        onClick={onBack}
-      >
-        ← Volver al historial
-      </button>
-
       <section className="detail-heading">
         <div>
           <p className="eyebrow">
             Detalle del ciclo
           </p>
 
-          <h1>{cycle.cycleId}</h1>
+          <div className="module-title-row">
+            <h1>{cycle.cycleId}</h1>
+            <button
+              className="module-back-button"
+              type="button"
+              onClick={onBack}
+            >
+              ← Volver
+            </button>
+          </div>
 
           <p className="page-description">
             Información completa y operaciones
