@@ -104,7 +104,7 @@ function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              🦈
+              🦈1
             </span>
 
             <div>
@@ -141,7 +141,7 @@ function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              🦈
+              🦈2
             </span>
 
             <div>
@@ -175,7 +175,7 @@ function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              🦈
+              🦈3
             </span>
 
             <div>
@@ -211,7 +211,7 @@ function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              🦈
+              🦈4
             </span>
 
             <div>
@@ -246,7 +246,7 @@ function App() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">
-            🦈
+            🦈5
           </span>
 
           <div>
