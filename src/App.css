@@ -233,6 +233,63 @@
   background: #c59227;
 }
 
+.negotiation-banner-content {
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  min-width: 0;
+}
+
+.negotiation-countdown {
+  flex-shrink: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  min-width: 130px;
+}
+
+.negotiation-countdown span {
+  margin-bottom: 2px;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  opacity: 0.75;
+}
+
+.negotiation-countdown strong {
+  margin: 0;
+
+  font-size: 22px;
+  font-weight: 800;
+
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+@media (max-width: 600px) {
+  .negotiation-banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 10px;
+  }
+
+  .negotiation-countdown {
+    align-items: flex-start;
+  }
+}
+
 /* =========================
    HISTORIAL
    ========================= */

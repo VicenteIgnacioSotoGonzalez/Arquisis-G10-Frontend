@@ -276,8 +276,6 @@ function App() {
         </header>
 
         <main className="page">
-            <NegotiationWindowBanner />
-
             <section className="page-header">
           <div>
             <p className="eyebrow">
@@ -329,6 +327,7 @@ function App() {
             Ver anomalías
           </button>
         </section>
+        <NegotiationWindowBanner />
 
         {loading && (
           <section className="state-card">
