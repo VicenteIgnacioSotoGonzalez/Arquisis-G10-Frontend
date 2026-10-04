@@ -104,7 +104,7 @@ function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              ES
+              🦈1
             </span>
 
             <div>
@@ -128,9 +128,7 @@ function App() {
         <main className="page">
           <CycleDetail
             cycleId={selectedCycleId}
-            onBack={() =>
-              setSelectedCycleId(null)
-            }
+            onBack={() => setSelectedCycleId(null)}
           />
         </main>
       </div>
@@ -143,7 +141,7 @@ function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              ES
+              🦈2
             </span>
 
             <div>
@@ -164,9 +162,7 @@ function App() {
 
         <main className="page">
           <ConnectivityView
-            onBack={() =>
-              setShowConnectivity(false)
-            }
+            onBack={() => setShowConnectivity(false)}
           />
         </main>
       </div>
@@ -179,7 +175,7 @@ function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              ES
+              🦈3
             </span>
 
             <div>
@@ -202,9 +198,7 @@ function App() {
 
         <main className="page">
           <NegotiationForm
-            onBack={() =>
-              setShowNegotiationForm(false)
-            }
+            onBack={() => setShowNegotiationForm(false)}
           />
         </main>
       </div>
@@ -217,7 +211,7 @@ function App() {
         <header className="topbar">
           <div className="brand">
             <span className="brand-mark">
-              ES
+              🦈4
             </span>
 
             <div>
@@ -240,9 +234,7 @@ function App() {
 
         <main className="page">
           <AnomaliesView
-            onBack={() =>
-              setShowAnomalies(false)
-            }
+            onBack={() => setShowAnomalies(false)}
           />
         </main>
       </div>
@@ -254,7 +246,7 @@ function App() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">
-            ES
+            🦈5
           </span>
 
           <div>
@@ -290,6 +282,38 @@ function App() {
             </p>
           </div>
 
+          <div className="page-actions">
+            <button
+              className="page-action-button"
+              type="button"
+              onClick={() =>
+                setShowConnectivity(true)
+              }
+            >
+              Ver conectividad
+            </button>
+
+            <button
+              className="page-action-button"
+              type="button"
+              onClick={() =>
+                setShowNegotiationForm(true)
+              }
+            >
+              Nueva negociación
+            </button>
+
+            <button
+              className="page-action-button"
+              type="button"
+              onClick={() =>
+                setShowAnomalies(true)
+              }
+            >
+              Ver anomalías
+            </button>
+          </div>
+
           {!loading && !error && (
             <div className="total-card">
               <span className="total-label">
@@ -299,33 +323,6 @@ function App() {
               <strong>{total}</strong>
             </div>
           )}
-
-          <button
-            type="button"
-            onClick={() =>
-              setShowConnectivity(true)
-            }
-          >
-            Ver conectividad
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setShowNegotiationForm(true)
-            }
-          >
-            Nueva negociación
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              setShowAnomalies(true)
-            }
-          >
-            Ver anomalías
-          </button>
         </section>
         <NegotiationWindowBanner />
 

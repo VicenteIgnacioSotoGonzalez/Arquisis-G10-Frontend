@@ -128,12 +128,20 @@ function NegotiationWindowBanner() {
    * Información real desde backend.
    *
    * Se consulta cada 5 segundos para detectar
-   * ciclos nuevos.
+   * ciclos nuevos y también al volver a la pestaña.
    */
   useEffect(() => {
     let mounted = true
+    let refreshing = false
+    let timeoutId
 
     async function refreshStatus() {
+      if (!mounted || refreshing) {
+        return
+      }
+
+      refreshing = true
+
       try {
         const cyclesData =
           await getCycles()
@@ -150,30 +158,28 @@ function NegotiationWindowBanner() {
               error: null,
             })
           }
+        } else {
+          const latestCycle =
+            cycles[0]
 
-          return
-        }
-
-        const latestCycle =
-          cycles[0]
-
-        const detail =
-          await getCycleDetail(
-            latestCycle.cycleId,
-          )
-
-        const validUntil =
-          detail.statusStatement
-            ?.validUntil ?? null
-
-        if (mounted) {
-          setWindowData({
-            loading: false,
-            cycleId:
+          const detail =
+            await getCycleDetail(
               latestCycle.cycleId,
-            validUntil,
-            error: null,
-          })
+            )
+
+          const validUntil =
+            detail.statusStatement
+              ?.validUntil ?? null
+
+          if (mounted) {
+            setWindowData({
+              loading: false,
+              cycleId:
+                latestCycle.cycleId,
+              validUntil,
+              error: null,
+            })
+          }
         }
       } catch (err) {
         if (mounted) {
@@ -185,22 +191,39 @@ function NegotiationWindowBanner() {
             }),
           )
         }
+      } finally {
+        refreshing = false
+
+        if (mounted) {
+          timeoutId = window.setTimeout(
+            refreshStatus,
+            API_REFRESH_MS,
+          )
+        }
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        window.clearTimeout(timeoutId)
+        refreshStatus()
       }
     }
 
     refreshStatus()
 
-    const intervalId =
-      window.setInterval(
-        refreshStatus,
-        API_REFRESH_MS,
-      )
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange,
+    )
 
     return () => {
       mounted = false
 
-      window.clearInterval(
-        intervalId,
+      window.clearTimeout(timeoutId)
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange,
       )
     }
   }, [])

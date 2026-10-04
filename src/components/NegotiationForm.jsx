@@ -8,7 +8,6 @@ import {
 function NegotiationForm({ onBack }) {
   const { loginWithRedirect } = useAuth0()
 
-  const [cycles, setCycles] = useState([])
   const [cycleId, setCycleId] = useState('')
   const [direction, setDirection] =
     useState('give')
@@ -33,14 +32,8 @@ function NegotiationForm({ onBack }) {
           return
         }
 
-        const items = data.items ?? []
-        setCycles(items)
-
-        if (items.length > 0) {
-          setCycleId(
-            (current) => current || items[0].cycleId,
-          )
-        }
+        const latestCycle = data.items?.[0]
+        setCycleId(latestCycle?.cycleId ?? '')
 
         setLoadingCycles(false)
       })
@@ -49,7 +42,6 @@ function NegotiationForm({ onBack }) {
           return
         }
 
-        setCycles([])
         setLoadingCycles(false)
       })
 
@@ -60,7 +52,7 @@ function NegotiationForm({ onBack }) {
 
   function validate() {
     if (!cycleId) {
-      return 'Debes elegir un ciclo.'
+      return 'No hay ciclos disponibles para crear una propuesta.'
     }
 
     if (Number(quantity) <= 0) {
@@ -107,7 +99,7 @@ function NegotiationForm({ onBack }) {
         )
       } else if (err.message.includes('status 404')) {
         setFormError(
-          'El ciclo elegido ya no existe.',
+          'El ciclo más reciente ya no existe.',
         )
       } else if (err.message.includes('status 422')) {
         setFormError(
@@ -129,39 +121,31 @@ function NegotiationForm({ onBack }) {
             Negociación voluntaria
           </p>
 
-          <h1>Nueva propuesta</h1>
+          <div className="module-title-row">
+            <h1>Nueva propuesta</h1>
+            <button
+              className="module-back-button"
+              type="button"
+              onClick={onBack}
+            >
+              ← Volver
+            </button>
+          </div>
 
           <p className="page-description">
-            Crea una propuesta de negociación
-            en estado PROPOSED para el ciclo
-            elegido.
+            {cycleId
+              ? `La propuesta se asociará al ciclo más reciente: ${cycleId}.`
+              : 'No hay ciclos disponibles para crear una propuesta.'}
           </p>
         </div>
       </section>
 
-      <section className="cycles-card">
-        <form onSubmit={handleSubmit}>
-          <label>
-            Ciclo
-            <select
-              value={cycleId}
-              onChange={(event) =>
-                setCycleId(event.target.value)
-              }
-              disabled={loadingCycles || submitting}
-            >
-              {cycles.map((cycle) => (
-                <option
-                  key={cycle.cycleId}
-                  value={cycle.cycleId}
-                >
-                  {cycle.cycleId}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
+      <section className="negotiation-form-card">
+        <form
+          className="negotiation-form"
+          onSubmit={handleSubmit}
+        >
+          <label className="negotiation-field">
             Dirección
             <select
               value={direction}
@@ -180,7 +164,7 @@ function NegotiationForm({ onBack }) {
             </select>
           </label>
 
-          <label>
+          <label className="negotiation-field">
             Cantidad (kWh)
             <input
               type="number"
@@ -194,7 +178,7 @@ function NegotiationForm({ onBack }) {
             />
           </label>
 
-          <label>
+          <label className="negotiation-field">
             Precio ofrecido (créditos)
             <input
               type="number"
@@ -208,22 +192,20 @@ function NegotiationForm({ onBack }) {
             />
           </label>
 
-          <button
-            type="submit"
-            disabled={submitting || loadingCycles}
-          >
-            {submitting
-              ? 'Enviando...'
-              : 'Crear propuesta'}
-          </button>
+          <div className="negotiation-form-actions">
+            <button
+              className="negotiation-submit-button"
+              type="submit"
+              disabled={
+                submitting || loadingCycles || !cycleId
+              }
+            >
+              {submitting
+                ? 'Enviando...'
+                : 'Crear propuesta'}
+            </button>
 
-          <button
-            type="button"
-            onClick={onBack}
-            disabled={submitting}
-          >
-            Volver
-          </button>
+          </div>
         </form>
       </section>
 
