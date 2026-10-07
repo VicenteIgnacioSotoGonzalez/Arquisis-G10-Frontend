@@ -21,25 +21,34 @@ El backend y los contratos compartidos se encuentran en repositorios independien
 
 ## Arquitectura general
 
-El flujo productivo del frontend es:
+Distribución del frontend
 
-```text
 Usuario
+  ↓
+https://app.energyshark-g10.tech
   ↓
 CloudFront
   ↓
-SPA React
+Amazon S3
+  ↓
+React SPA
+
+
+Autenticación y API
+
+React SPA
   ↓
 Auth0
   ↓
 Bearer JWT
   ↓
-AWS API Gateway
-  ↓
 https://api.energyshark-g10.tech
   ↓
+AWS API Gateway
+  ↓
+JWT Authorizer
+  ↓
 Backend EnergyShark
-```
 
 El frontend se publica como un build estático en Amazon S3 y se distribuye mediante CloudFront sobre HTTPS.
 
@@ -319,13 +328,13 @@ a las requests correspondientes.
 
 La aplicación Auth0 utilizada por el frontend es una SPA.
 
-El dominio de CloudFront debe estar autorizado en Auth0:
+El origen productivo principal del frontend es:
 
 ```text
-https://d9yjiq237jfab.cloudfront.net
+https://app.energyshark-g10.tech
 ```
 
-Debe aparecer en:
+Este dominio debe estar autorizado en Auth0 en:
 
 ```text
 Allowed Callback URLs
@@ -333,15 +342,52 @@ Allowed Logout URLs
 Allowed Web Origins
 ```
 
-También se utiliza durante desarrollo:
+Durante la transición también puede mantenerse autorizado el dominio original de CloudFront:
+
+```text
+https://d9yjiq237jfab.cloudfront.net
+```
+
+Para desarrollo local también se utiliza:
 
 ```text
 http://localhost:5173
 ```
 
-No deben almacenarse tokens o client secrets directamente en el repositorio.
+El flujo esperado es:
 
----
+```text
+Usuario
+  ↓
+https://app.energyshark-g10.tech
+  ↓
+loginWithRedirect()
+  ↓
+Auth0
+  ↓
+https://app.energyshark-g10.tech
+  ↓
+getAccessTokenSilently()
+  ↓
+Bearer JWT
+  ↓
+https://api.energyshark-g10.tech
+```
+
+El audience utilizado por EnergyShark continúa siendo:
+
+```text
+https://arquisis-e1-api/
+```
+
+El cambio de dominio del frontend no requiere cambiar:
+
+- `VITE_AUTH0_CLIENT_ID`
+- `VITE_AUTH0_AUDIENCE`
+- el issuer de Auth0
+- el JWT Authorizer de API Gateway
+
+No deben almacenarse tokens, client secrets ni otras credenciales directamente en el repositorio.
 
 ## Build de producción
 
@@ -405,8 +451,11 @@ Distribución:
 Distribution ID:
 EFUBNHG9ZB6SV
 
-Domain:
+Dominio CloudFront:
 https://d9yjiq237jfab.cloudfront.net
+
+Dominio personalizado:
+https://app.energyshark-g10.tech
 ```
 
 CloudFront utiliza el endpoint REST de S3 como origen.
