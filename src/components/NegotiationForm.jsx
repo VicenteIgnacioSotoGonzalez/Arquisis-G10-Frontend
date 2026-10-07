@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import {
   createNegotiation,
+  getNegotiation,
   getCycles,
 } from '../services/api'
+
+import { negotiationIntent, clearNegotiationIntent } from '../services/negotiationIntent'
 
 function NegotiationForm({ onBack }) {
   const { loginWithRedirect } = useAuth0()
 
   const [cycleId, setCycleId] = useState('')
+  const [availableCycles, setAvailableCycles] = useState([])
   const [direction, setDirection] =
     useState('give')
   const [quantity, setQuantity] = useState('')
@@ -26,40 +30,57 @@ function NegotiationForm({ onBack }) {
   useEffect(() => {
     let active = true
 
-    getCycles()
-      .then((data) => {
-        if (!active) {
-          return
+    let timer
+    async function refresh() {
+      try {
+        const data = await getCycles()
+        if (!active) return
+        const openCycles = (data.items ?? []).filter((item) => item.negotiationOpen)
+        setAvailableCycles(openCycles)
+        setCycleId((selected) => openCycles.some((item) => item.cycleId === selected)
+          ? selected : (openCycles[0]?.cycleId ?? ''))
+      } catch {
+        // Conservar la selección; la API vuelve a validar la ventana al enviar.
+      } finally {
+        if (active) {
+          setLoadingCycles(false)
+          timer = window.setTimeout(refresh, 5000)
         }
-
-        const latestCycle = data.items?.[0]
-        setCycleId(latestCycle?.cycleId ?? '')
-
-        setLoadingCycles(false)
-      })
-      .catch(() => {
-        if (!active) {
-          return
-        }
-
-        setLoadingCycles(false)
-      })
-
-    return () => {
-      active = false
+      }
     }
+    refresh()
+    return () => { active = false; window.clearTimeout(timer) }
   }, [])
+
+  const negotiationId = result?.id
+  useEffect(() => {
+    if (!negotiationId) return
+    let active = true
+    let timer
+    async function refresh() {
+      try {
+        const data = await getNegotiation(negotiationId)
+        if (active) setResult(data)
+      } catch {
+        // Conservar la última respuesta; la siguiente consulta puede recuperarse.
+      } finally {
+        if (active) timer = window.setTimeout(refresh, 5000)
+      }
+    }
+    timer = window.setTimeout(refresh, 5000)
+    return () => { active = false; window.clearTimeout(timer) }
+  }, [negotiationId])
 
   function validate() {
     if (!cycleId) {
       return 'No hay ciclos disponibles para crear una propuesta.'
     }
 
-    if (Number(quantity) <= 0) {
+    if (!quantity || !Number.isFinite(Number(quantity)) || Number(quantity) <= 0) {
       return 'La cantidad debe ser mayor a 0.'
     }
 
-    if (Number(price) < 0) {
+    if (price === '' || !Number.isFinite(Number(price)) || Number(price) < 0) {
       return 'El precio no puede ser negativo.'
     }
 
@@ -82,13 +103,13 @@ function NegotiationForm({ onBack }) {
     setSubmitting(true)
 
     try {
-      const data = await createNegotiation({
+      const data = await createNegotiation(negotiationIntent({
         cycleId,
-        idpk: crypto.randomUUID(),
         direction,
         requestedQuantity: quantity,
         offeredPrice: price,
-      })
+      }, window.sessionStorage))
+      clearNegotiationIntent(window.sessionStorage)
 
       setResult(data)
     } catch (err) {
@@ -99,7 +120,7 @@ function NegotiationForm({ onBack }) {
         )
       } else if (err.message.includes('status 404')) {
         setFormError(
-          'El ciclo más reciente ya no existe.',
+          'El ciclo seleccionado ya no existe.',
         )
       } else if (err.message.includes('status 422')) {
         setFormError(
@@ -134,7 +155,7 @@ function NegotiationForm({ onBack }) {
 
           <p className="page-description">
             {cycleId
-              ? `La propuesta se asociará al ciclo más reciente: ${cycleId}.`
+              ? `La propuesta se asociará al ciclo abierto: ${cycleId}.`
               : 'No hay ciclos disponibles para crear una propuesta.'}
           </p>
         </div>
@@ -145,6 +166,13 @@ function NegotiationForm({ onBack }) {
           className="negotiation-form"
           onSubmit={handleSubmit}
         >
+          <label className="negotiation-field">
+            Ciclo abierto por la central
+            <select value={cycleId} onChange={(event) => setCycleId(event.target.value)} disabled={submitting}>
+              {!availableCycles.length && <option value="">Sin ciclos abiertos</option>}
+              {availableCycles.map((cycle) => <option key={cycle.cycleId} value={cycle.cycleId}>{cycle.cycleId}</option>)}
+            </select>
+          </label>
           <label className="negotiation-field">
             Dirección
             <select
@@ -179,7 +207,7 @@ function NegotiationForm({ onBack }) {
           </label>
 
           <label className="negotiation-field">
-            Precio ofrecido (créditos)
+            Techo de oferta (créditos/kWh)
             <input
               type="number"
               min="0"
@@ -232,8 +260,10 @@ function NegotiationForm({ onBack }) {
 
           <p>
             ID {result.id} · Estado{' '}
-            {result.status}
+            {result.status === 'ACKNOWLEDGED' ? 'Recibida (ACK), pendiente de confirmación' : result.status}
           </p>
+          {result.confirmedEnergy != null && <p>Energía confirmada: {result.confirmedEnergy} kWh · Precio: {result.confirmedPrice} créditos/kWh</p>}
+          <p>Pago: {result.paymentQuantity == null ? 'Pendiente' : `${result.paymentQuantity} créditos`}</p>
         </section>
       )}
     </div>

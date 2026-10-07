@@ -31,25 +31,25 @@ function ConnectivityView({ onBack }) {
   useEffect(() => {
     let active = true
 
-    getConnectivity()
-      .then((data) => {
-        if (active) {
-          setConnectivity(data)
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setError(err.message)
-        }
-      })
-      .finally(() => {
+    let timer
+    async function refresh() {
+      try {
+        const data = await getConnectivity()
+        if (active) { setConnectivity(data); setError(null) }
+      } catch (err) {
+        if (active) setError(err.message)
+      } finally {
         if (active) {
           setLoading(false)
+          timer = window.setTimeout(refresh, 5000)
         }
-      })
+      }
+    }
+    refresh()
 
     return () => {
       active = false
+      window.clearTimeout(timer)
     }
   }, [reloadKey])
 
