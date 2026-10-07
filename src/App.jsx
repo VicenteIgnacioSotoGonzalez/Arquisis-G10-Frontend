@@ -449,7 +449,7 @@ function App() {
                             }
                           >
                             {cycle.reported
-                              ? 'Enviado'
+                              ? 'Reporte registrado'
                               : 'Pendiente'}
                           </span>
                         </td>
