@@ -122,6 +122,12 @@ function formatDirection(value) {
 
 function negotiationStatus(value) {
   switch (value) {
+    case 'PENDING_PUBLICATION':
+      return { label: 'Pendiente de publicación', className: 'status status-pending' }
+    case 'TIMEOUT':
+      return { label: 'Plazo agotado', className: 'status status-pending' }
+    case 'REJECTED':
+      return { label: 'Rechazada', className: 'status' }
     case 'PROPOSED':
       return {
         label: 'Propuesta',
@@ -130,7 +136,7 @@ function negotiationStatus(value) {
 
     case 'ACKNOWLEDGED':
       return {
-        label: 'Aceptada',
+        label: 'Recibida (ACK)' ,
         className: 'status status-pending',
       }
 
@@ -162,25 +168,25 @@ function CycleDetail({ cycleId, onBack }) {
   useEffect(() => {
     let active = true
 
-    getCycleDetail(cycleId)
-      .then((data) => {
-        if (active) {
-          setCycle(data)
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          setError(err.message)
-        }
-      })
-      .finally(() => {
+    let timer
+    async function refresh() {
+      try {
+        const data = await getCycleDetail(cycleId)
+        if (active) { setCycle(data); setError(null) }
+      } catch (err) {
+        if (active) setError(err.message)
+      } finally {
         if (active) {
           setLoading(false)
+          timer = window.setTimeout(refresh, 5000)
         }
-      })
+      }
+    }
+    refresh()
 
     return () => {
       active = false
+      window.clearTimeout(timer)
     }
   }, [cycleId])
 
@@ -248,6 +254,7 @@ function CycleDetail({ cycleId, onBack }) {
 
   return (
     <div className="cycle-detail">
+      <p>Negociación: {cycle.negotiationOpen ? 'ventana abierta' : 'ventana cerrada o sin apertura recibida'} · Cierre: {formatDate(cycle.validUntil)}</p>
       <section className="detail-heading">
         <div>
           <p className="eyebrow">
@@ -491,10 +498,23 @@ function CycleDetail({ cycleId, onBack }) {
       </section>
 
       <section className="detail-card">
-        <h2>Negotiation report</h2>
+        <h2>Última versión del negotiation-report</h2>
+        <p>Publicado indica envío al broker; no confirma aceptación por la central.</p>
 
         {cycle.negotiationReport ? (
           <div className="detail-values">
+            <div>
+              <span>Estado</span>
+              <strong>{({ SUPERSEDED: 'Reemplazado antes de publicar', PENDING: 'Pendiente', PUBLISHED: 'Publicado', DEFERRED: 'Pospuesto por la central', EXPIRED: 'Vencido', REJECTED: 'Rechazado / requiere revisión' })[cycle.negotiationReport.status] || cycle.negotiationReport.status}</strong>
+            </div>
+            <div>
+              <span>Razón</span>
+              <strong>{cycle.negotiationReport.reason || '—'}</strong>
+            </div>
+            <div>
+              <span>Operación (idpk)</span>
+              <strong>{cycle.negotiationReport.idpk}</strong>
+            </div>
             <div>
               <span>
                 Budget reportado
@@ -548,6 +568,18 @@ function CycleDetail({ cycleId, onBack }) {
             El negotiation-report aún no ha
             sido registrado para este ciclo.
           </p>
+        )}
+        {cycle.negotiationReports?.length > 1 && (
+          <details>
+            <summary>Historial de reportes ({cycle.negotiationReports.length} versiones)</summary>
+            <ul>
+              {cycle.negotiationReports.map((report) => (
+                <li key={report.idpk}>
+                  {formatDate(report.createdAt)} · {report.status} · Budget {formatNumber(report.budgetBalance)} · Energía {formatNumber(report.energyBalance)} · idpk {report.idpk}
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </section>
 

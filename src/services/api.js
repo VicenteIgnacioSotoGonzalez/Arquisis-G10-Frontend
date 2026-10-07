@@ -73,3 +73,7 @@ export function getAnomalies(filters = {}) {
     query ? `/audit/anomalies?${query}` : '/audit/anomalies',
   )
 }
+
+export function getNegotiation(id) {
+  return apiFetch(`/negotiations/${encodeURIComponent(id)}`)
+}

@@ -729,3 +729,9 @@ Fuente de verdad para:
 - Contexto compartido del proyecto.
 
 ---
+
+## Cambios E1 v2 — 2026-10-07
+
+ACK indica recepción, no aceptación. El formulario selecciona ciclos `negotiationOpen`, conserva idpk ante un envío HTTP incierto y muestra confirmación/pago. Detalle, conectividad y seguimiento se actualizan cada cinco segundos. La operación pendiente en sessionStorage no incluye JWT.
+
+«Reporte registrado» significa existencia local. El detalle presenta última versión, estado, razón e historial; PUBLISHED no prueba aceptación central. Los campos proceden de OpenAPI y la API pública. Desplegar el backend actualizado antes de la SPA.
