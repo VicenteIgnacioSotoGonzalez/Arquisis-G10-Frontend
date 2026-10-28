@@ -77,3 +77,12 @@ export function getAnomalies(filters = {}) {
 export function getNegotiation(id) {
   return apiFetch(`/negotiations/${encodeURIComponent(id)}`)
 }
+
+// E2-058: libro de ofertas del ciclo, usando el contrato existente de E2-035/036.
+export function getMarketBook(cycleId, { includeInactive = false, signal } = {}) {
+  const params = new URLSearchParams({
+    cycleId: String(cycleId),
+    includeInactive: String(includeInactive),
+  })
+  return apiFetch(`/market/book?${params.toString()}`, { signal })
+}

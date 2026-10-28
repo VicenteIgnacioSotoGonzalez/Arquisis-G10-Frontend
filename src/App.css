@@ -1317,3 +1317,43 @@ tbody tr:hover {
   font-size: 11px;
   font-weight: 500;
 }
+/* E2-058 · Libro del mercado en vivo */
+.market-book-heading { margin-top: 24px; }
+.market-book-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 20px;
+  margin-bottom: 18px;
+  background: #fff;
+  border: 1px solid #e3e8ef;
+  border-radius: 14px;
+}
+.market-book-cycle-control { display: flex; flex-direction: column; gap: 7px; min-width: min(260px, 100%); flex: 1; }
+.market-book-cycle-control label { font-size: 12px; font-weight: 700; color: #50647c; }
+.market-book-cycle-control select { border: 1px solid #d9e1ea; background: white; border-radius: 9px; padding: 11px; color: #24374c; width: 100%; font: inherit; }
+.market-book-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #50647c; padding-bottom: 12px; cursor: pointer; }
+.market-book-toggle input { accent-color: #274c75; }
+.market-book-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; color: #5b6d84; font-size: 12px; }
+.market-book-meta strong { color: #26364a; }
+.market-book-chip { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 750; }
+.market-book-chip-open { color: #17633f; background: #e5f5eb; }
+.market-book-chip-closed { color: #9e3028; background: #fceceb; }
+.market-book-table-card { margin: 0; }
+.market-book-table { width: 100%; }
+.market-book-table th, .market-book-table td { white-space: nowrap; }
+.market-book-offer-id { display: block; font-size: 11px; color: #8290a1; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.market-book-effective { font-weight: 750; color: #183b5c; }
+.market-book-route-disabled { font-weight: 700; color: #97570c; }
+.market-book-uncertain { font-weight: 700; color: #97570c; }
+.market-book-message { padding: 14px 16px; margin: 12px 0; background: #eef2f6; border-radius: 10px; font-size: 13px; color: #50647c; }
+.market-book-error { background: #fff1f0; color: #9e3028; }
+.market-book-empty { padding: 36px 24px; text-align: center; }
+.market-book-empty h2 { margin: 0 0 8px; font-size: 17px; }
+.market-book-empty p { color: #7a8798; font-size: 13px; }
+.market-book-footnote { margin: 12px 0; font-size: 12px; line-height: 1.6; color: #748195; }
+@media (max-width: 760px) {
+  .market-book-controls { align-items: stretch; gap: 12px; }
+  .market-book-toggle { padding-bottom: 0; }
+}

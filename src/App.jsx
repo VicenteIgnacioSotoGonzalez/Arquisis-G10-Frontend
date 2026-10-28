@@ -8,6 +8,7 @@ import CycleDetail from './components/CycleDetail'
 import NegotiationForm from './components/NegotiationForm'
 import AnomaliesView from './components/AnomaliesView'
 import NegotiationWindowBanner from './components/NegotiationWindowBanner'
+import MarketBookView from './components/MarketBookView'
 import './App.css'
 
 function formatNumber(value) {
@@ -55,6 +56,8 @@ function App() {
   const [showNegotiationForm, setShowNegotiationForm] =
     useState(false)
   const [showAnomalies, setShowAnomalies] =
+    useState(false)
+  const [showMarketBook, setShowMarketBook] =
     useState(false)
 
   const {
@@ -130,6 +133,27 @@ function App() {
             cycleId={selectedCycleId}
             onBack={() => setSelectedCycleId(null)}
           />
+        </main>
+      </div>
+    )
+  }
+
+  if (showMarketBook) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">🦈</span>
+            <div>
+              <p className="brand-name">EnergyShark</p>
+              <p className="brand-subtitle">Panel de administración</p>
+            </div>
+          </div>
+          <div className="city-badge">King's Landing · KLD</div>
+          <AuthButton />
+        </header>
+        <main className="page">
+          <MarketBookView onBack={() => setShowMarketBook(false)} />
         </main>
       </div>
     )
@@ -283,6 +307,13 @@ function App() {
           </div>
 
           <div className="page-actions">
+            <button
+              className="page-action-button"
+              type="button"
+              onClick={() => setShowMarketBook(true)}
+            >
+              Ver mercado en vivo
+            </button>
             <button
               className="page-action-button"
               type="button"
