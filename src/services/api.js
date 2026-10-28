@@ -91,3 +91,17 @@ export function getMarketBook(cycleId, { includeInactive = false, signal } = {})
 export function getCycleHistory(cycleId, { signal } = {}) {
   return apiFetch(`/cycles/${encodeURIComponent(cycleId)}/history`, { signal })
 }
+
+// E2-060: swaps E2-057. No exponer tokens ni ejecutar escrituras wallet.
+export function getSwaps({ cycleId = '', role = '', status = '', offset = 0, limit = 20, signal } = {}) {
+  const params = new URLSearchParams({ offset: String(offset), limit: String(limit) })
+  if (cycleId) params.set('cycleId', cycleId)
+  if (role) params.set('role', role)
+  if (status) params.set('status', status)
+  return apiFetch(`/market/swaps?${params.toString()}`, { signal })
+}
+
+export function getSwapDetail(id, { signal } = {}) {
+  if (!Number.isSafeInteger(id) || id < 1) throw new Error('Identificador interno de swap inválido')
+  return apiFetch(`/market/swaps/${id}`, { signal })
+}
