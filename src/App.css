@@ -1374,3 +1374,29 @@ tbody tr:hover {
 .cycle-e2-table th, .cycle-e2-table td { white-space: nowrap; }
 .cycle-e2-table td { vertical-align: top; }
 @media (max-width: 760px) { .cycle-e2-header { flex-direction: column; } }
+
+/* E2-060 · seguimiento de swaps E2 (lectura de E2-057) */
+.swaps-heading { margin-top: 24px; }
+.swaps-controls {
+  display: flex; align-items: flex-end; flex-wrap: wrap; gap: 13px;
+  background: #fff; border: 1px solid #dfe6ee; border-radius: 12px;
+  padding: 16px; margin-bottom: 20px;
+}
+.swaps-controls label { display: flex; flex-direction: column; flex: 1; min-width: 160px; gap: 7px; font-size: 12px; font-weight: 700; color: #50647c; }
+.swaps-controls select { border: 1px solid #d9e1ea; border-radius: 9px; padding: 11px; background: white; color: #26364a; font: inherit; width: 100%; }
+.swaps-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 11px 22px; color: #61738c; font-size: 12px; margin-bottom: 18px; }
+.swaps-summary strong { color: #24374c; }
+.swaps-section { overflow: hidden; }
+.swaps-section h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.swaps-count { font-size: 11px; font-weight: 600; color: #708197; }
+.swaps-table { width: 100%; }
+.swaps-table td, .swaps-table th { white-space: nowrap; vertical-align: top; }
+.swaps-title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 15px; }
+.swaps-title-row h2 { margin: 0; }
+.swaps-detail-intro { color: #60718a; margin: 0 0 19px; overflow-wrap: anywhere; font-size: 13px; }
+.swaps-timeline { margin-top: 16px; border-radius: 12px; background: #f3f6fa; padding: 15px 18px; font-size: 13px; color: #40556d; }
+.swaps-timeline p { margin: 6px 0; }
+.swaps-pagination { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 12px; margin: 8px 0 16px; color: #61738c; font-size: 13px; }
+.swaps-pagination div { display: flex; gap: 8px; }
+.swaps-pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
+@media (max-width: 760px) { .swaps-controls { align-items: stretch; } .swaps-title-row { align-items: flex-start; } }
