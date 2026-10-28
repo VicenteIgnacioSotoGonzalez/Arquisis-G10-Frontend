@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getCycleDetail } from '../services/api'
+import CycleE2History from './CycleE2History'
 
 function formatNumber(value) {
   if (value === null || value === undefined) {
@@ -496,6 +497,8 @@ function CycleDetail({ cycleId, onBack }) {
           </div>
         )}
       </section>
+
+      <CycleE2History key={cycleId} cycleId={cycleId} />
 
       <section className="detail-card">
         <h2>Última versión del negotiation-report</h2>

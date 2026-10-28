@@ -1357,3 +1357,20 @@ tbody tr:hover {
   .market-book-controls { align-items: stretch; gap: 12px; }
   .market-book-toggle { padding-bottom: 0; }
 }
+
+/* E2-059 · Historial de operaciones E2 por ciclo */
+.cycle-e2-history { margin: 28px 0; }
+.cycle-e2-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin: 0 0 16px; }
+.cycle-e2-header h2 { font-size: 22px; margin: 0 0 7px; color: #21364e; }
+.cycle-e2-caption { font-size: 12px; color: #65768c; line-height: 1.6; margin: -7px 0 14px; }
+.cycle-e2-header .cycle-e2-caption { margin: 0; }
+.cycle-e2-updated { font-size: 12px; color: #65768c; margin: 7px 0 0; }
+.cycle-e2-section { overflow: hidden; }
+.cycle-e2-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-bottom: 15px; }
+.cycle-e2-title h2 { margin: 0; }
+.cycle-e2-count { font-size: 11px; color: #667a91; background: #f0f4f8; padding: 4px 9px; border-radius: 999px; font-weight: 700; }
+.cycle-e2-id { display: block; color: #77869a; font-size: 11px; max-width: 210px; overflow-wrap: anywhere; margin-top: 4px; }
+.cycle-e2-table { width: 100%; }
+.cycle-e2-table th, .cycle-e2-table td { white-space: nowrap; }
+.cycle-e2-table td { vertical-align: top; }
+@media (max-width: 760px) { .cycle-e2-header { flex-direction: column; } }

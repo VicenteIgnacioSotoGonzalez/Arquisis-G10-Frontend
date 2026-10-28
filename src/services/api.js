@@ -86,3 +86,8 @@ export function getMarketBook(cycleId, { includeInactive = false, signal } = {})
   })
   return apiFetch(`/market/book?${params.toString()}`, { signal })
 }
+
+// E2-059: historial E2 de solo lectura (E2-056), independiente del detalle E1.
+export function getCycleHistory(cycleId, { signal } = {}) {
+  return apiFetch(`/cycles/${encodeURIComponent(cycleId)}/history`, { signal })
+}
