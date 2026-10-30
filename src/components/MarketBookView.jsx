@@ -48,9 +48,10 @@ function MarketBookView({ cycleIds, onBack }) {
       <p className="page-description">Observaciones locales del feed. Los precios efectivos usan la última distance-table del ciclo y se actualizan cada 10 segundos.</p>
     </div></section>
     <section className="market-panel">
-      <label>Ciclo <select value={selectedCycleId} onChange={selectCycle}>{cycleIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
-      <button className="page-action-button" type="button" disabled={!selectedCycleId} onClick={() => { setLoading(true); setError(null); setReloadKey((value) => value + 1) }}>Actualizar ahora</button>
-      {!selectedCycleId && <p>No hay ciclos disponibles.</p>}
+      {selectedCycleId ? <>
+        <label>Ciclo <select value={selectedCycleId} onChange={selectCycle}>{cycleIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+        <button className="page-action-button" type="button" onClick={() => { setLoading(true); setError(null); setReloadKey((value) => value + 1) }}>Actualizar ahora</button>
+      </> : <p>No hay ciclos disponibles. El libro aparecerá cuando se registre un ciclo.</p>}
     </section>
     {(loading || (selectedCycleId && !book && !error)) && <section className="state-card"><div className="spinner" /><p>Cargando libro de mercado...</p></section>}
     {error && <section className="state-card error-card" role="alert"><h2>No fue posible actualizar el mercado</h2><p>{error}</p><p>Los precios y disponibilidades previos no se muestran como vigentes.</p></section>}
