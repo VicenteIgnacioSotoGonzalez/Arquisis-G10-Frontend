@@ -71,6 +71,10 @@ export function getIntercityAudit(cycleId, limit = 50) {
   return apiFetch(`/audit/intercity?cycleId=${encodeURIComponent(cycleId)}&limit=${limit}`)
 }
 
+export function getMarketBook(cycleId, includeInactive = true) {
+  return apiFetch(`/market/book?cycleId=${encodeURIComponent(cycleId)}&includeInactive=${includeInactive}`)
+}
+
 export function getConnectivity() {
   return apiFetch('/connectivity')
 }
