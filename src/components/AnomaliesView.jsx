@@ -158,12 +158,12 @@ function AnomaliesView({ onBack }) {
           </label>
 
           <label className="anomalies-filter-field">
-            Motivo
-            <select name="reasonCode" value={filters.reasonCode} onChange={handleChange}>
-              <option value="">Todos</option>
-              <option value="IDENTITY_MISMATCH">Identidad ajena</option>
-              <option value="MALFORMED_MESSAGE">Mensaje malformado</option>
-            </select>
+            Código de motivo
+            <input name="reasonCode" list="audit-reason-codes" value={filters.reasonCode} onChange={handleChange} placeholder="IDENTITY_MISMATCH" />
+            <datalist id="audit-reason-codes">
+              <option value="IDENTITY_MISMATCH" />
+              <option value="MALFORMED_MESSAGE" />
+            </datalist>
           </label>
 
           <label className="anomalies-filter-field">
