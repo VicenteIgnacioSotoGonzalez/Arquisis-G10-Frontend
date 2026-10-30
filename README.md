@@ -1,5 +1,7 @@
 # EnergyShark Frontend ⚡🦈
 
+El contexto compartido y los contratos v3.0.2 del grupo están en [`Arquisis-G10-Contracts/agents.md`](https://github.com/VicenteIgnacioSotoGonzalez/Arquisis-G10-Contracts/blob/develop/agents.md). La interfaz de estrategia y métricas consume la API propia documentada en ese repositorio.
+
 Frontend de **EnergyShark - Grupo 10**, desarrollado como una SPA con React y Vite.
 
 La aplicación permite visualizar el estado energético de la ciudad, consultar ciclos y conectividad, revisar anomalías y gestionar negociaciones voluntarias mediante la API pública de EnergyShark.

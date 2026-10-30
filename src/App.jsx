@@ -8,6 +8,8 @@ import CycleDetail from './components/CycleDetail'
 import NegotiationForm from './components/NegotiationForm'
 import AnomaliesView from './components/AnomaliesView'
 import NegotiationWindowBanner from './components/NegotiationWindowBanner'
+import MarketStrategyView from './components/MarketStrategyView'
+import SpanExperimentView from './components/SpanExperimentView'
 import './App.css'
 
 function formatNumber(value) {
@@ -56,6 +58,8 @@ function App() {
     useState(false)
   const [showAnomalies, setShowAnomalies] =
     useState(false)
+  const [showMarketStrategy, setShowMarketStrategy] = useState(false)
+  const [showSpanExperiment, setShowSpanExperiment] = useState(false)
 
   const {
     getAccessTokenSilently,
@@ -133,6 +137,14 @@ function App() {
         </main>
       </div>
     )
+  }
+
+  if (showMarketStrategy) {
+    return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">🦈</span><div><p className="brand-name">EnergyShark</p><p className="brand-subtitle">Panel de administración</p></div></div><div className="city-badge">King's Landing · KLD</div><AuthButton /></header><main className="page"><MarketStrategyView cycleId={cycles[0]?.cycleId} onBack={() => setShowMarketStrategy(false)} /></main></div>
+  }
+
+  if (showSpanExperiment) {
+    return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">🦈</span><div><p className="brand-name">EnergyShark</p><p className="brand-subtitle">Panel de administración</p></div></div><div className="city-badge">King's Landing · KLD</div><AuthButton /></header><main className="page"><SpanExperimentView onBack={() => setShowSpanExperiment(false)} /></main></div>
   }
 
   if (showConnectivity) {
@@ -311,6 +323,12 @@ function App() {
               }
             >
               Ver anomalías
+            </button>
+            <button className="page-action-button" type="button" onClick={() => setShowMarketStrategy(true)}>
+              Administrar mercado
+            </button>
+            <button className="page-action-button" type="button" onClick={() => setShowSpanExperiment(true)}>
+              Experimento span
             </button>
           </div>
 
