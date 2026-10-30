@@ -110,6 +110,21 @@ export function getCycleMetrics(offset = 0, limit = 50) {
   return apiFetch(`/market/cycle-metrics/compare?offset=${offset}&limit=${limit}`)
 }
 
+export async function getAllCycleMetrics() {
+  const items = new Map()
+  let offset = 0
+  let total = 1
+  while (offset < total) {
+    const page = await getCycleMetrics(offset, 200)
+    total = page.total ?? 0
+    const rows = page.items ?? []
+    if (!rows.length) break
+    for (const row of rows) items.set(row.cycleId, row)
+    offset += rows.length
+  }
+  return { total: items.size, items: [...items.values()] }
+}
+
 export function getCycleReconciliation(cycleId) {
   return apiFetch(`/audit/reconciliations?cycleId=${encodeURIComponent(cycleId)}&limit=1`)
 }
