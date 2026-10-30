@@ -191,6 +191,25 @@
   padding: 42px 0 64px;
 }
 
+.market-summary, .market-form, .market-panel, .market-feedback {
+  background: #fff;
+  border: 1px solid #dfe7f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.market-summary { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+.market-summary p { margin: 0; }
+.market-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; align-items: end; }
+.market-form label { display: grid; gap: 7px; font-weight: 650; }
+.market-form small { font-weight: 400; color: #68788c; }
+.market-form input, .market-form select { padding: 10px; border: 1px solid #c8d4e3; border-radius: 8px; font: inherit; min-width: 0; }
+.market-form button { justify-self: start; }
+.market-panel h2 { margin-top: 0; }
+.market-feedback { color: #14613d; }
+.market-feedback.error-card { color: #a32323; }
+
 .module-back-button {
   min-height: 36px;
   padding: 7px 13px;
