@@ -212,6 +212,8 @@
 .market-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; }
 .market-pagination button { padding: 8px 12px; border: 1px solid #c8d4e3; border-radius: 8px; background: #fff; cursor: pointer; }
 .market-pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+.audit-identifier { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.audit-reason { display: block; margin-top: 4px; color: #56677c; font-weight: 400; }
 
 .module-back-button {
   min-height: 36px;

@@ -1,4 +1,5 @@
 import { getToken } from './auth'
+import { anomalyQuery } from './anomalyAudit'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -65,20 +66,8 @@ export function createNegotiation(body) {
   })
 }
 
-export function getAnomalies(filters = {}) {
-  const params = new URLSearchParams()
-
-  for (const [key, value] of Object.entries(filters)) {
-    if (value !== null && value !== undefined && value !== '') {
-      params.append(key, value)
-    }
-  }
-
-  const query = params.toString()
-
-  return apiFetch(
-    query ? `/audit/anomalies?${query}` : '/audit/anomalies',
-  )
+export function getAnomalies(filters = {}, offset = 0, limit = 50) {
+  return apiFetch(`/audit/anomalies?${anomalyQuery(filters, offset, limit)}`)
 }
 
 export function getNegotiation(id) {
