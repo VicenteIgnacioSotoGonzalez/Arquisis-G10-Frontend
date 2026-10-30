@@ -1,5 +1,6 @@
 import { getToken } from './auth'
 import { anomalyQuery } from './anomalyAudit'
+import { apiErrorMessage, TIMEOUT_MESSAGE } from './apiErrors'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -12,30 +13,40 @@ const BASE_URL = API_URL.replace(/\/$/, '')
 export async function apiFetch(path, options = {}) {
   const token = await getToken()
   const headers = { ...(options.headers || {}) }
+  const { timeoutMs = 15000, ...requestOptions } = options
+  const controller = options.signal ? null : new AbortController()
+  const timeout = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null
 
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
 
-  const response = await fetch(
-    `${BASE_URL}${path}`,
-    { ...options, headers },
-  )
+  let response
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...requestOptions, headers, signal: options.signal ?? controller.signal,
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error(TIMEOUT_MESSAGE, { cause: error })
+      timeoutError.code = 'TIMEOUT'
+      throw timeoutError
+    }
+    throw new Error('No fue posible conectar con la API. Revisa la conexión e inténtalo otra vez.', { cause: error })
+  } finally {
+    if (timeout) window.clearTimeout(timeout)
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     const detail = body?.detail
-    const message = typeof detail === 'string'
-      ? detail
-      : detail?.code === 'STALE_STRATEGY_VERSION'
-        ? 'La estrategia cambió mientras editabas. Recarga los valores antes de guardar.'
-        : `La API respondió con estado ${response.status}`
+    const message = apiErrorMessage(response.status, detail, response.headers.get('Retry-After'))
     const error = new Error(message)
     error.status = response.status
     throw error
   }
 
-  return response.json()
+  return response.status === 204 ? null : response.json()
 }
 
 export function getHealth() {
@@ -50,6 +61,14 @@ export function getCycleDetail(cycleId) {
   return apiFetch(
     `/cycles/${encodeURIComponent(cycleId)}`,
   )
+}
+
+export function getCycleHistory(cycleId) {
+  return apiFetch(`/cycles/${encodeURIComponent(cycleId)}/history`)
+}
+
+export function getIntercityAudit(cycleId, limit = 50) {
+  return apiFetch(`/audit/intercity?cycleId=${encodeURIComponent(cycleId)}&limit=${limit}`)
 }
 
 export function getConnectivity() {

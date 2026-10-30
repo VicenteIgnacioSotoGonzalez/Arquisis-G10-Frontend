@@ -214,6 +214,8 @@
 .market-pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
 .audit-identifier { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
 .audit-reason { display: block; margin-top: 4px; color: #56677c; font-weight: 400; }
+.market-activity-list { margin: 8px 0 18px; padding-left: 22px; overflow-wrap: anywhere; }
+.market-activity-list li { margin: 7px 0; }
 
 .module-back-button {
   min-height: 36px;
