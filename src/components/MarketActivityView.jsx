@@ -41,12 +41,14 @@ function MarketActivityView({ cycleId }) {
       {(history.swaps ?? []).length === 0 ? <p>Sin swaps registrados.</p> : <ul className="market-activity-list">{history.swaps.map((swap) =>
         <li key={swap.idpk}><strong>{swap.swapId ?? swap.idpk}</strong> · {swap.role} · {swap.counterpartCityId} · {swapStage(swap)}{swap.rejectionReason ? ` · ${swap.rejectionReason}` : ''}</li>)}</ul>}
     </>}
-    <h3>ACK/NACK interciudad</h3>
-    {auditError && <p className="market-feedback error-card" role="alert">{auditError}</p>}
-    {!auditError && !loading && (intercity.length === 0 ? <p>Sin ACK/NACK registrados en la página reciente de este ciclo.</p> :
-      <ul className="market-activity-list">{intercity.map((message) => <li key={`${message.direction}-${message.msgId}`}>
-        <strong>{ackStage(message)}</strong> · {message.direction} · objetivo {message.targetMsgId ?? 'sin referencia'} · {message.status}
-      </li>)}</ul>)}
+    {cycleId && <>
+      <h3>ACK/NACK interciudad</h3>
+      {auditError && <p className="market-feedback error-card" role="alert">{auditError}</p>}
+      {!auditError && !loading && (intercity.length === 0 ? <p>Sin ACK/NACK registrados en la página reciente de este ciclo.</p> :
+        <ul className="market-activity-list">{intercity.map((message) => <li key={`${message.direction}-${message.msgId}`}>
+          <strong>{ackStage(message)}</strong> · {message.direction} · objetivo {message.targetMsgId ?? 'sin referencia'} · {message.status}
+        </li>)}</ul>)}
+    </>}
   </section>
 }
 
