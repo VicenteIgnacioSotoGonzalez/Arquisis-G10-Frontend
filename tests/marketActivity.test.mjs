@@ -7,7 +7,7 @@ test('HTTP 202 and ACK do not appear as swap settlement', () => {
   assert.match(swapStage({ status: 'SUBMITTED', proposalHttpAcceptedAt: '2026-10-30T00:00:00Z' }), /HTTP 202.*falta evento final/)
   assert.match(swapStage({ status: 'PROPOSED' }), /falta swap-settled/)
   assert.match(ackStage({ type: 'ack' }), /recepción, no aceptación/)
-  assert.match(bidStage({ status: 'ACCEPTED' }), /falta confirmar liquidación/)
+  assert.match(bidStage({ status: 'ACCEPTED' }), /liquidación se verifica en el swap/)
   assert.match(swapStage({ status: 'SETTLED', settledAt: '2026-10-30T00:01:00Z' }), /Liquidado: swap-settled/)
   assert.doesNotMatch(swapStage({ status: 'SETTLED', settledAt: null }), /Liquidado/)
 })

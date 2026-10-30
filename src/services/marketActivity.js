@@ -10,7 +10,7 @@ export function swapStage(swap) {
 }
 
 export function bidStage(bid) {
-  if (bid.status === 'ACCEPTED') return 'Bid aceptado; falta confirmar liquidación del swap'
+  if (bid.status === 'ACCEPTED') return 'Bid aceptado; la liquidación se verifica en el swap'
   if (bid.status === 'REJECTED') return `Bid rechazado${bid.rejectionReason ? `: ${bid.rejectionReason}` : ''}`
   return 'Bid enviado o recibido; respuesta comercial pendiente'
 }
