@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react'
 import { getMarketSwaps, getStrategy, getStrategyOptions, updateStrategy } from '../services/api'
 import { strategyFormFrom, strategyPayload, validateStrategyForm } from '../services/marketStrategy'
 
+const selectionPolicyLabels = {
+  CHEAPEST_EFFECTIVE_PRICE: 'Menor precio efectivo',
+  MIN_DISTANCE: 'Menor distancia',
+}
+
 function MarketStrategyView({ cycleId, onBack }) {
   const [strategy, setStrategy] = useState(null)
   const [options, setOptions] = useState(null)
@@ -75,7 +80,7 @@ function MarketStrategyView({ cycleId, onBack }) {
         <label>Cantidad máxima (KWH) <small>Opcional. Nunca supera el excedente ni el saldo disponible en Wallet.</small><input name="offerQuantityCap" type="number" min="0" step="1" value={form.offerQuantityCap} onChange={change} placeholder="Sin tope adicional" /></label>
         <label>Espera de compra, span (segundos)<input name="spanSeconds" type="number" min="0" step="1" value={form.spanSeconds} onChange={change} required /></label>
         <label>Política de aceptación de bids<select name="bidAcceptancePolicy" value={form.bidAcceptancePolicy} onChange={change}>{options.bidAcceptancePolicies.map((policy) => <option key={policy} value={policy}>{policy}</option>)}</select></label>
-        <label>Política de selección de ofertas<select name="offerSelectionPolicy" value={form.offerSelectionPolicy} onChange={change}>{options.offerSelectionPolicies.map((policy) => <option key={policy} value={policy}>{policy}</option>)}</select></label>
+        <label>Política de selección de ofertas<select name="offerSelectionPolicy" value={form.offerSelectionPolicy} onChange={change}>{options.offerSelectionPolicies.map((policy) => <option key={policy} value={policy}>{selectionPolicyLabels[policy] ?? policy}</option>)}</select></label>
         <button className="page-action-button" disabled={saving} type="submit">{saving ? 'Guardando...' : 'Guardar para el próximo ciclo'}</button>
       </form>
       <section className="market-panel"><h2>Swaps recientes</h2>
