@@ -7,12 +7,18 @@ const options = { bidAcceptancePolicies: ['FIFO', 'BATCH'], offerSelectionPolici
 test('strategy form matches the backend fields and pins the version being edited', () => {
   const form = strategyFormFrom({ offerPriceMarkup: '1.2500', offerQuantityFraction: '0.7500', bidAcceptancePolicy: 'BATCH', offerSelectionPolicy: 'MIN_DISTANCE', spanSeconds: 90 })
   assert.equal(validateStrategyForm(form, options), null)
-  assert.deepEqual(strategyPayload(form, 4), { offerPriceMarkup: '1.2500', offerQuantityFraction: '0.7500', bidAcceptancePolicy: 'BATCH', offerSelectionPolicy: 'MIN_DISTANCE', spanSeconds: 90, expectedVersion: 4 })
+  assert.deepEqual(strategyPayload(form, 4), { offerPriceMarkup: '1.2500', offerQuantityFraction: '0.7500', offerPriceOverride: null, offerQuantityCap: null, bidAcceptancePolicy: 'BATCH', offerSelectionPolicy: 'MIN_DISTANCE', spanSeconds: 90, expectedVersion: 4 })
 })
 
 test('invalid price, quantity, span and policies are rejected before POST', () => {
   const valid = strategyFormFrom({ offerSelectionPolicy: 'MIN_DISTANCE' })
-  for (const [field, value] of [['offerPriceMarkup', '0'], ['offerPriceMarkup', '1.12345'], ['offerQuantityFraction', '1.1'], ['spanSeconds', '1.5'], ['bidAcceptancePolicy', 'unknown']]) {
+  for (const [field, value] of [['offerPriceMarkup', '0'], ['offerPriceMarkup', '1.12345'], ['offerQuantityFraction', '1.1'], ['offerPriceOverride', '0'], ['offerPriceOverride', '2.12345'], ['offerQuantityCap', '2.5'], ['spanSeconds', '1.5'], ['bidAcceptancePolicy', 'unknown']]) {
     assert.ok(validateStrategyForm({ ...valid, [field]: value }, options), `${field}=${value}`)
   }
+})
+
+test('direct price and quantity cap are sent only when configured', () => {
+  const form = { ...strategyFormFrom({ offerSelectionPolicy: 'MIN_DISTANCE' }), offerPriceOverride: '330.5000', offerQuantityCap: '120' }
+  assert.equal(validateStrategyForm(form, options), null)
+  assert.deepEqual([strategyPayload(form, 2).offerPriceOverride, strategyPayload(form, 2).offerQuantityCap], ['330.5000', 120])
 })
