@@ -6,19 +6,20 @@ const number = (value) => value == null ? '—' : new Intl.NumberFormat('es-CL',
 const date = (value) => value ? new Intl.DateTimeFormat('es-CL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—'
 
 function MarketBookView({ cycleIds, onBack }) {
-  const [cycleId, setCycleId] = useState(cycleIds[0] ?? '')
+  const [cycleId, setCycleId] = useState('')
+  const selectedCycleId = cycleId || cycleIds[0] || ''
   const [book, setBook] = useState(null)
-  const [loading, setLoading] = useState(Boolean(cycleId))
+  const [loading, setLoading] = useState(Boolean(selectedCycleId))
   const [error, setError] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    if (!cycleId) return
+    if (!selectedCycleId) return
     let active = true
     let timer
     async function refresh() {
       try {
-        const value = await getMarketBook(cycleId)
+        const value = await getMarketBook(selectedCycleId)
         if (active) { setBook(value); setError(null) }
       } catch (err) {
         if (active) setError(err.message)
@@ -31,7 +32,7 @@ function MarketBookView({ cycleIds, onBack }) {
     }
     refresh()
     return () => { active = false; window.clearTimeout(timer) }
-  }, [cycleId, reloadKey])
+  }, [selectedCycleId, reloadKey])
 
   function selectCycle(event) {
     setCycleId(event.target.value)
@@ -47,11 +48,11 @@ function MarketBookView({ cycleIds, onBack }) {
       <p className="page-description">Observaciones locales del feed. Los precios efectivos usan la última distance-table del ciclo y se actualizan cada 10 segundos.</p>
     </div></section>
     <section className="market-panel">
-      <label>Ciclo <select value={cycleId} onChange={selectCycle}>{cycleIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
-      <button className="page-action-button" type="button" disabled={!cycleId} onClick={() => { setLoading(true); setError(null); setReloadKey((value) => value + 1) }}>Actualizar ahora</button>
-      {!cycleId && <p>No hay ciclos disponibles.</p>}
+      <label>Ciclo <select value={selectedCycleId} onChange={selectCycle}>{cycleIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+      <button className="page-action-button" type="button" disabled={!selectedCycleId} onClick={() => { setLoading(true); setError(null); setReloadKey((value) => value + 1) }}>Actualizar ahora</button>
+      {!selectedCycleId && <p>No hay ciclos disponibles.</p>}
     </section>
-    {loading && <section className="state-card"><div className="spinner" /><p>Cargando libro de mercado...</p></section>}
+    {(loading || (selectedCycleId && !book && !error)) && <section className="state-card"><div className="spinner" /><p>Cargando libro de mercado...</p></section>}
     {error && <section className="state-card error-card" role="alert"><h2>No fue posible actualizar el mercado</h2><p>{error}</p><p>Los precios y disponibilidades previos no se muestran como vigentes.</p></section>}
     {!loading && !error && book && <>
       <section className="market-panel">

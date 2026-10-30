@@ -13,7 +13,7 @@ export function feedFreshness(book) {
 export function offerAvailability(book, offer) {
   if (book?.marketClosed) return 'Mercado cerrado'
   if (offer.state !== 'ACTIVE' || offer.remaining == null || offer.remaining <= 0) return 'Oferta no activa'
-  if (offer.stale) return 'Oferta desactualizada tras brecha del feed'
+  if (offer.stale) return 'Oferta desactualizada o incierta'
   if (offer.uncertain) return 'Oferta con estado incierto'
   if (!book || book.freshness !== 'OBSERVED') return 'Feed incompleto; disponibilidad no garantizada'
   return 'Oferta observada; disponibilidad no garantizada'
