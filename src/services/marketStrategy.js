@@ -20,8 +20,8 @@ export function validateStrategyForm(form, options) {
   if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1 || !/^\d+(?:\.\d{1,4})?$/.test(form.offerQuantityFraction)) {
     return 'La fracción ofertada debe estar entre 0 y 1, con hasta cuatro decimales.'
   }
-  if (form.offerPriceOverride !== '' && (!Number.isFinite(Number(form.offerPriceOverride)) || Number(form.offerPriceOverride) <= 0 || !/^\d{1,16}(?:\.\d{1,4})?$/.test(form.offerPriceOverride))) {
-    return 'El precio fijo debe ser positivo y tener hasta cuatro decimales.'
+  if (form.offerPriceOverride !== '' && (!Number.isFinite(Number(form.offerPriceOverride)) || Number(form.offerPriceOverride) <= 0 || !/^\d{1,16}(?:\.\d{1,2})?$/.test(form.offerPriceOverride))) {
+    return 'El precio fijo debe ser positivo y tener hasta dos decimales.'
   }
   if (form.offerQuantityCap !== '' && (!/^\d+$/.test(form.offerQuantityCap) || !Number.isSafeInteger(Number(form.offerQuantityCap)))) {
     return 'El máximo de KWH debe ser un entero no negativo.'
