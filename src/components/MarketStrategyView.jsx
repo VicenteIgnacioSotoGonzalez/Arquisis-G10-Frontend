@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { getMarketSwaps, getStrategy, getStrategyOptions, updateStrategy } from '../services/api'
+import { getStrategy, getStrategyOptions, updateStrategy } from '../services/api'
 import { strategyFormFrom, strategyPayload, validateStrategyForm } from '../services/marketStrategy'
+import MarketActivityView from './MarketActivityView'
 
 const selectionPolicyLabels = {
   CHEAPEST_EFFECTIVE_PRICE: 'Menor precio efectivo',
@@ -10,7 +11,6 @@ const selectionPolicyLabels = {
 function MarketStrategyView({ cycleId, onBack }) {
   const [strategy, setStrategy] = useState(null)
   const [options, setOptions] = useState(null)
-  const [swaps, setSwaps] = useState([])
   const [form, setForm] = useState(strategyFormFrom())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -19,12 +19,11 @@ function MarketStrategyView({ cycleId, onBack }) {
 
   useEffect(() => {
     let active = true
-    Promise.all([getStrategy(cycleId), getStrategyOptions(), getMarketSwaps()])
-      .then(([value, allowed, currentSwaps]) => {
+    Promise.all([getStrategy(cycleId), getStrategyOptions()])
+      .then(([value, allowed]) => {
         if (!active) return
         setStrategy(value)
         setOptions(allowed)
-        setSwaps(currentSwaps.items ?? [])
         setForm(strategyFormFrom(value.pending ?? value.active))
       })
       .catch((err) => { if (active) setError(err.message) })
@@ -83,9 +82,7 @@ function MarketStrategyView({ cycleId, onBack }) {
         <label>Política de selección de ofertas<select name="offerSelectionPolicy" value={form.offerSelectionPolicy} onChange={change}>{options.offerSelectionPolicies.map((policy) => <option key={policy} value={policy}>{selectionPolicyLabels[policy] ?? policy}</option>)}</select></label>
         <button className="page-action-button" disabled={saving} type="submit">{saving ? 'Guardando...' : 'Guardar para el próximo ciclo'}</button>
       </form>
-      <section className="market-panel"><h2>Swaps recientes</h2>
-        {swaps.length === 0 ? <p>Sin swaps registrados.</p> : <div className="table-wrapper"><table><thead><tr><th>Swap</th><th>Rol</th><th>Contraparte</th><th>Estado</th></tr></thead><tbody>{swaps.map((swap) => <tr key={swap.id}><td>{swap.swapId ?? swap.idpk}</td><td>{swap.role}</td><td>{swap.counterpartCityId}</td><td>{swap.status}</td></tr>)}</tbody></table></div>}
-      </section>
+      <MarketActivityView cycleId={cycleId} />
     </>}
   </div>
 }
