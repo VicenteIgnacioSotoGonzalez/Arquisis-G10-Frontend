@@ -9,16 +9,6 @@ const API_REFRESH_MS = 5000
 const NEGOTIATION_WINDOW_MS =
   20 * 60 * 1000
 
-const CYCLE_DURATION_MS =
-  2 * 60 * 60 * 1000
-
-// Desde el cierre de una ventana hasta
-// el comienzo de la siguiente:
-// 120 min - 20 min = 100 min.
-const TIME_BETWEEN_WINDOWS_MS =
-  CYCLE_DURATION_MS - NEGOTIATION_WINDOW_MS
-
-
 function formatDate(value) {
   if (!value) {
     return null
@@ -64,31 +54,33 @@ function formatCountdown(milliseconds) {
 }
 
 
-function getNextWindowStart(
+function getCurrentWindow(
   validUntil,
   now,
 ) {
-  const currentWindowEnd =
+  const firstWindowStart =
     new Date(validUntil).getTime()
+    - NEGOTIATION_WINDOW_MS
 
-  let nextStart =
-    currentWindowEnd
-    + TIME_BETWEEN_WINDOWS_MS
-
-  /*
-   * Si por alguna razón el último ciclo de la API
-   * está muy antiguo, avanzamos de 2 h en 2 h hasta
-   * encontrar la siguiente ventana futura.
-   */
-  while (
-    nextStart
-    + NEGOTIATION_WINDOW_MS
-    <= now
-  ) {
-    nextStart += CYCLE_DURATION_MS
+  if (now < firstWindowStart) {
+    return {
+      start: firstWindowStart,
+      end: firstWindowStart + NEGOTIATION_WINDOW_MS,
+      active: false,
+    }
   }
 
-  return nextStart
+  const elapsedCycles = Math.floor(
+    (now - firstWindowStart) / NEGOTIATION_WINDOW_MS,
+  )
+  const start =
+    firstWindowStart + elapsedCycles * NEGOTIATION_WINDOW_MS
+
+  return {
+    start,
+    end: start + NEGOTIATION_WINDOW_MS,
+    active: true,
+  }
 }
 
 
@@ -278,25 +270,18 @@ function NegotiationWindowBanner() {
     )
   }
 
-  const windowEnd =
-    new Date(
+  const currentWindow =
+    getCurrentWindow(
       windowData.validUntil,
-    ).getTime()
-
-  const windowStart =
-    windowEnd
-    - NEGOTIATION_WINDOW_MS
-
-  const isActive =
-    now >= windowStart
-    && now < windowEnd
+      now,
+    )
 
   /*
    * VENTANA ACTIVA
    */
-  if (isActive) {
+  if (currentWindow.active) {
     const remaining =
-      windowEnd - now
+      currentWindow.end - now
 
     return (
       <section className="negotiation-banner negotiation-banner-active">
@@ -313,7 +298,7 @@ function NegotiationWindowBanner() {
               {' · '}
               Cierra a las{' '}
               {formatDate(
-                windowData.validUntil,
+                currentWindow.end,
               )}
             </p>
           </div>
@@ -338,14 +323,8 @@ function NegotiationWindowBanner() {
    * VENTANA CERRADA
    */
 
-  const nextWindowStart =
-    getNextWindowStart(
-      windowData.validUntil,
-      now,
-    )
-
   const remaining =
-    nextWindowStart - now
+    currentWindow.start - now
 
   return (
     <section className="negotiation-banner negotiation-banner-inactive">
@@ -360,7 +339,7 @@ function NegotiationWindowBanner() {
           <p>
             Próxima ventana estimada:{' '}
             {formatDate(
-              nextWindowStart,
+              currentWindow.start,
             )}
           </p>
         </div>
