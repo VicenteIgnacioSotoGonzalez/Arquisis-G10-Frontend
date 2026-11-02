@@ -193,7 +193,7 @@ function ConnectivityView({ onBack }) {
 
                     <span className="unit">
                       {' '}
-                      km
+                      m
                     </span>
                   </td>
 
