@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getCycleDetail } from '../services/api'
 import MarketActivityView from './MarketActivityView'
+import CycleE2History from './CycleE2History'
 
 function formatNumber(value) {
   if (value === null || value === undefined) {
@@ -599,6 +600,7 @@ function CycleDetail({ cycleId, onBack }) {
         <LedgerTable entries={cycle.ledger} />
       </section>
       <MarketActivityView cycleId={cycleId} />
+      <CycleE2History key={cycleId} cycleId={cycleId} />
     </div>
   )
 }

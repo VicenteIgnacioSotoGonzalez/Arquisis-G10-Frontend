@@ -63,16 +63,16 @@ export function getCycleDetail(cycleId) {
   )
 }
 
-export function getCycleHistory(cycleId) {
-  return apiFetch(`/cycles/${encodeURIComponent(cycleId)}/history`)
+export function getCycleHistory(cycleId, { signal } = {}) {
+  return apiFetch(`/cycles/${encodeURIComponent(cycleId)}/history`, { signal })
 }
 
 export function getIntercityAudit(cycleId, limit = 50) {
   return apiFetch(`/audit/intercity?cycleId=${encodeURIComponent(cycleId)}&limit=${limit}`)
 }
 
-export function getMarketBook(cycleId, includeInactive = true) {
-  return apiFetch(`/market/book?cycleId=${encodeURIComponent(cycleId)}&includeInactive=${includeInactive}`)
+export function getMarketBook(cycleId, { includeInactive = true, signal } = {}) {
+  return apiFetch(`/market/book?cycleId=${encodeURIComponent(cycleId)}&includeInactive=${includeInactive}`, { signal })
 }
 
 export function getConnectivity() {
@@ -116,6 +116,19 @@ export function updateStrategy(body) {
 
 export function getMarketSwaps() {
   return apiFetch('/market/swaps?limit=20')
+}
+
+export function getSwaps({ cycleId = '', role = '', status = '', offset = 0, limit = 20, signal } = {}) {
+  const params = new URLSearchParams({ offset: String(offset), limit: String(limit) })
+  if (cycleId) params.set('cycleId', cycleId)
+  if (role) params.set('role', role)
+  if (status) params.set('status', status)
+  return apiFetch(`/market/swaps?${params.toString()}`, { signal })
+}
+
+export function getSwapDetail(id, { signal } = {}) {
+  if (!Number.isSafeInteger(id) || id < 1) throw new Error('Identificador interno de swap inválido')
+  return apiFetch(`/market/swaps/${id}`, { signal })
 }
 
 export function getCycleMetrics(offset = 0, limit = 50) {

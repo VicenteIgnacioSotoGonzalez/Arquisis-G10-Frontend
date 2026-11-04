@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getMarketBook } from '../services/api'
-import { feedFreshness, offerAvailability, routeDescription } from '../services/marketBook'
+import { getCycles, getMarketBook } from '../services/api'
+import { feedFreshness, offerAvailability, routeDescription, sortMarketOffers } from '../services/marketBook'
 
 const number = (value) => value == null ? '—' : new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 }).format(Number(value))
 const penaltyRate = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
@@ -8,11 +8,24 @@ const date = (value) => value ? new Intl.DateTimeFormat('es-CL', { dateStyle: 's
 
 function MarketBookView({ cycleIds, onBack }) {
   const [cycleId, setCycleId] = useState('')
-  const selectedCycleId = cycleId || cycleIds[0] || ''
+  const [availableCycleIds, setAvailableCycleIds] = useState(cycleIds)
+  const selectedCycleId = cycleId || availableCycleIds[0] || ''
   const [book, setBook] = useState(null)
   const [loading, setLoading] = useState(Boolean(selectedCycleId))
   const [error, setError] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [includeInactive, setIncludeInactive] = useState(true)
+  const offers = sortMarketOffers(book?.offers ?? [])
+
+  useEffect(() => {
+    let active = true
+    getCycles().then((data) => {
+      if (!active) return
+      const latest = (data.items ?? []).map((cycle) => cycle.cycleId)
+      setAvailableCycleIds((current) => [...new Set([...current, ...latest])])
+    }).catch(() => {})
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     if (!selectedCycleId) return
@@ -20,7 +33,7 @@ function MarketBookView({ cycleIds, onBack }) {
     let timer
     async function refresh() {
       try {
-        const value = await getMarketBook(selectedCycleId)
+        const value = await getMarketBook(selectedCycleId, { includeInactive })
         if (active) { setBook(value); setError(null) }
       } catch (err) {
         if (active) setError(err.message)
@@ -33,7 +46,7 @@ function MarketBookView({ cycleIds, onBack }) {
     }
     refresh()
     return () => { active = false; window.clearTimeout(timer) }
-  }, [selectedCycleId, reloadKey])
+  }, [selectedCycleId, includeInactive, reloadKey])
 
   function selectCycle(event) {
     setCycleId(event.target.value)
@@ -50,7 +63,8 @@ function MarketBookView({ cycleIds, onBack }) {
     </div></section>
     <section className="market-panel">
       {selectedCycleId ? <>
-        <label>Ciclo <select value={selectedCycleId} onChange={selectCycle}>{cycleIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+        <label>Ciclo <select value={selectedCycleId} onChange={selectCycle}>{availableCycleIds.map((id) => <option key={id} value={id}>{id}</option>)}</select></label>
+        <label><input type="checkbox" checked={includeInactive} onChange={(event) => { setIncludeInactive(event.target.checked); setBook(null); setError(null); setLoading(true) }} /> Mostrar retiradas, cerradas e inciertas</label>
         <button className="page-action-button" type="button" onClick={() => { setLoading(true); setError(null); setReloadKey((value) => value + 1) }}>Actualizar ahora</button>
       </> : <p>No hay ciclos disponibles. El libro aparecerá cuando se registre un ciclo.</p>}
     </section>
@@ -66,13 +80,15 @@ function MarketBookView({ cycleIds, onBack }) {
         <p className="market-warning">El feed no ofrece confirmación de disponibilidad ni recuperación completa de mensajes perdidos. Consulta la oferta y la ventana antes de actuar.</p>
       </section>
       <section className="market-panel"><h2>Ofertas observadas ({book.total})</h2>
-        {(book.offers ?? []).length === 0 ? <p>Sin ofertas registradas para este ciclo.</p> : <div className="table-wrapper"><table><thead><tr>
-          <th>Oferta / ciudad</th><th>Disponible observado</th><th>Estado</th><th>Ruta</th><th>Precio nominal</th><th>Transporte</th><th>Precio efectivo</th><th>Último evento</th>
-        </tr></thead><tbody>{book.offers.map((offer) => <tr key={`${offer.cityId}-${offer.offerId}`}>
+        {offers.length === 0 ? <p>Sin ofertas registradas para este ciclo.</p> : <div className="table-wrapper"><table><thead><tr>
+          <th>Oferta / ciudad</th><th>Cantidad inicial</th><th>Disponible observado</th><th>Estado</th><th>Ruta</th><th>Distancia</th><th>Precio nominal</th><th>Transporte</th><th>Precio efectivo</th><th>Último evento</th>
+        </tr></thead><tbody>{offers.map((offer) => <tr key={`${offer.cityId}-${offer.offerId}`}>
           <td className="audit-identifier">{offer.offerId} · {offer.cityId}</td>
+          <td>{offer.quantity == null ? '—' : `${number(offer.quantity)} KWH`}</td>
           <td>{offer.remaining == null ? '—' : `${number(offer.remaining)} KWH`}</td>
           <td>{offerAvailability(book, offer)}</td>
           <td>{routeDescription(offer)}</td>
+          <td>{offer.distanceMeters == null ? '—' : `${number(offer.distanceMeters)} m`}</td>
           <td>{offer.pricePerEnergy == null ? '—' : `${number(offer.pricePerEnergy)} CR/KWH`}</td>
           <td>{offer.transportPerEnergy == null ? 'Sin tarifa verificable' : `${number(offer.transportPerEnergy)} CR/KWH`}</td>
           <td><strong>{offer.effectivePricePerEnergy == null ? 'No calculable' : `${number(offer.effectivePricePerEnergy)} CR/KWH`}</strong></td>
