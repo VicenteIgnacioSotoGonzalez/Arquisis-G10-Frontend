@@ -1346,3 +1346,86 @@ tbody tr:hover {
   font-size: 11px;
   font-weight: 500;
 }
+/* E2-058 · Libro del mercado en vivo */
+.market-book-heading { margin-top: 24px; }
+.market-book-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 20px;
+  margin-bottom: 18px;
+  background: #fff;
+  border: 1px solid #e3e8ef;
+  border-radius: 14px;
+}
+.market-book-cycle-control { display: flex; flex-direction: column; gap: 7px; min-width: min(260px, 100%); flex: 1; }
+.market-book-cycle-control label { font-size: 12px; font-weight: 700; color: #50647c; }
+.market-book-cycle-control select { border: 1px solid #d9e1ea; background: white; border-radius: 9px; padding: 11px; color: #24374c; width: 100%; font: inherit; }
+.market-book-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #50647c; padding-bottom: 12px; cursor: pointer; }
+.market-book-toggle input { accent-color: #274c75; }
+.market-book-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; color: #5b6d84; font-size: 12px; }
+.market-book-meta strong { color: #26364a; }
+.market-book-chip { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 750; }
+.market-book-chip-open { color: #17633f; background: #e5f5eb; }
+.market-book-chip-closed { color: #9e3028; background: #fceceb; }
+.market-book-table-card { margin: 0; }
+.market-book-table { width: 100%; }
+.market-book-table th, .market-book-table td { white-space: nowrap; }
+.market-book-offer-id { display: block; font-size: 11px; color: #8290a1; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.market-book-effective { font-weight: 750; color: #183b5c; }
+.market-book-route-disabled { font-weight: 700; color: #97570c; }
+.market-book-uncertain { font-weight: 700; color: #97570c; }
+.market-book-message { padding: 14px 16px; margin: 12px 0; background: #eef2f6; border-radius: 10px; font-size: 13px; color: #50647c; }
+.market-book-error { background: #fff1f0; color: #9e3028; }
+.market-book-empty { padding: 36px 24px; text-align: center; }
+.market-book-empty h2 { margin: 0 0 8px; font-size: 17px; }
+.market-book-empty p { color: #7a8798; font-size: 13px; }
+.market-book-footnote { margin: 12px 0; font-size: 12px; line-height: 1.6; color: #748195; }
+@media (max-width: 760px) {
+  .market-book-controls { align-items: stretch; gap: 12px; }
+  .market-book-toggle { padding-bottom: 0; }
+}
+
+/* E2-059 · Historial de operaciones E2 por ciclo */
+.cycle-e2-history { margin: 28px 0; }
+.cycle-e2-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin: 0 0 16px; }
+.cycle-e2-header h2 { font-size: 22px; margin: 0 0 7px; color: #21364e; }
+.cycle-e2-caption { font-size: 12px; color: #65768c; line-height: 1.6; margin: -7px 0 14px; }
+.cycle-e2-header .cycle-e2-caption { margin: 0; }
+.cycle-e2-updated { font-size: 12px; color: #65768c; margin: 7px 0 0; }
+.cycle-e2-section { overflow: hidden; }
+.cycle-e2-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-bottom: 15px; }
+.cycle-e2-title h2 { margin: 0; }
+.cycle-e2-count { font-size: 11px; color: #667a91; background: #f0f4f8; padding: 4px 9px; border-radius: 999px; font-weight: 700; }
+.cycle-e2-id { display: block; color: #77869a; font-size: 11px; max-width: 210px; overflow-wrap: anywhere; margin-top: 4px; }
+.cycle-e2-table { width: 100%; }
+.cycle-e2-table th, .cycle-e2-table td { white-space: nowrap; }
+.cycle-e2-table td { vertical-align: top; }
+@media (max-width: 760px) { .cycle-e2-header { flex-direction: column; } }
+
+/* E2-060 · seguimiento de swaps E2 (lectura de E2-057) */
+.swaps-heading { margin-top: 24px; }
+.swaps-controls {
+  display: flex; align-items: flex-end; flex-wrap: wrap; gap: 13px;
+  background: #fff; border: 1px solid #dfe6ee; border-radius: 12px;
+  padding: 16px; margin-bottom: 20px;
+}
+.swaps-controls label { display: flex; flex-direction: column; flex: 1; min-width: 160px; gap: 7px; font-size: 12px; font-weight: 700; color: #50647c; }
+.swaps-controls select { border: 1px solid #d9e1ea; border-radius: 9px; padding: 11px; background: white; color: #26364a; font: inherit; width: 100%; }
+.swaps-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 11px 22px; color: #61738c; font-size: 12px; margin-bottom: 18px; }
+.swaps-summary strong { color: #24374c; }
+.swaps-section { overflow: hidden; }
+.swaps-section h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.swaps-count { font-size: 11px; font-weight: 600; color: #708197; }
+.swaps-table { width: 100%; }
+.swaps-table td, .swaps-table th { white-space: nowrap; vertical-align: top; }
+.swaps-title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 15px; }
+.swaps-title-row h2 { margin: 0; }
+.swaps-detail-intro { color: #60718a; margin: 0 0 19px; overflow-wrap: anywhere; font-size: 13px; }
+.swaps-timeline { margin-top: 16px; border-radius: 12px; background: #f3f6fa; padding: 15px 18px; font-size: 13px; color: #40556d; }
+.swaps-timeline p { margin: 6px 0; }
+.swaps-pagination { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 12px; margin: 8px 0 16px; color: #61738c; font-size: 13px; }
+.swaps-pagination div { display: flex; gap: 8px; }
+.swaps-pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
+@media (max-width: 760px) { .swaps-controls { align-items: stretch; } .swaps-title-row { align-items: flex-start; } }

@@ -11,6 +11,7 @@ import NegotiationWindowBanner from './components/NegotiationWindowBanner'
 import MarketStrategyView from './components/MarketStrategyView'
 import SpanExperimentView from './components/SpanExperimentView'
 import MarketBookView from './components/MarketBookView'
+import SwapsView from './components/SwapsView'
 import './App.css'
 
 function formatNumber(value) {
@@ -62,6 +63,7 @@ function App() {
   const [showMarketStrategy, setShowMarketStrategy] = useState(false)
   const [showSpanExperiment, setShowSpanExperiment] = useState(false)
   const [showMarketBook, setShowMarketBook] = useState(false)
+  const [showSwaps, setShowSwaps] = useState(false)
 
   const {
     getAccessTokenSilently,
@@ -151,6 +153,10 @@ function App() {
 
   if (showMarketBook) {
     return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">🦈</span><div><p className="brand-name">EnergyShark</p><p className="brand-subtitle">Panel de administración</p></div></div><div className="city-badge">King's Landing · KLD</div><AuthButton /></header><main className="page"><MarketBookView cycleIds={cycles.map((cycle) => cycle.cycleId)} onBack={() => setShowMarketBook(false)} /></main></div>
+  }
+
+  if (showSwaps) {
+    return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">🦈</span><div><p className="brand-name">EnergyShark</p><p className="brand-subtitle">Panel de administración</p></div></div><div className="city-badge">King's Landing · KLD</div><AuthButton /></header><main className="page"><SwapsView onBack={() => setShowSwaps(false)} /></main></div>
   }
 
   if (showConnectivity) {
@@ -335,6 +341,9 @@ function App() {
             </button>
             <button className="page-action-button" type="button" onClick={() => setShowMarketBook(true)}>
               Ver mercado
+            </button>
+            <button className="page-action-button" type="button" onClick={() => setShowSwaps(true)}>
+              Ver swaps
             </button>
             <button className="page-action-button" type="button" onClick={() => setShowSpanExperiment(true)}>
               Experimento span
