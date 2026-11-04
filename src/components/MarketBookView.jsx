@@ -3,6 +3,7 @@ import { getMarketBook } from '../services/api'
 import { feedFreshness, offerAvailability, routeDescription } from '../services/marketBook'
 
 const number = (value) => value == null ? '—' : new Intl.NumberFormat('es-CL', { maximumFractionDigits: 2 }).format(Number(value))
+const penaltyRate = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 const date = (value) => value ? new Intl.DateTimeFormat('es-CL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) : '—'
 
 function MarketBookView({ cycleIds, onBack }) {
@@ -61,7 +62,7 @@ function MarketBookView({ cycleIds, onBack }) {
         <p role="status">{feedFreshness(book)}</p>
         <p>Observado: {date(book.asOf)} · Último evento del feed: {date(book.lastFeedEventAt)} · Posible brecha: {date(book.feedGapAt)}</p>
         <p>Cierre programado: {date(book.closesAt)} · Tabla de distancias: {date(book.distanceTableTimestamp)}</p>
-        {book.disabledRouteTransportCost != null && <p>Tarifa punitiva de ruta deshabilitada: {number(book.disabledRouteTransportCost)} CR/(KWH·km).</p>}
+        {book.disabledRouteTransportCost != null && <p>Tarifa punitiva de ruta deshabilitada: {penaltyRate.format(Number(book.disabledRouteTransportCost))} CR/(KWH·km).</p>}
         <p className="market-warning">El feed no ofrece confirmación de disponibilidad ni recuperación completa de mensajes perdidos. Consulta la oferta y la ventana antes de actuar.</p>
       </section>
       <section className="market-panel"><h2>Ofertas observadas ({book.total})</h2>
