@@ -1,4 +1,6 @@
 import { getToken } from './auth'
+import { anomalyQuery } from './anomalyAudit'
+import { apiErrorMessage, TIMEOUT_MESSAGE } from './apiErrors'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -11,23 +13,40 @@ const BASE_URL = API_URL.replace(/\/$/, '')
 export async function apiFetch(path, options = {}) {
   const token = await getToken()
   const headers = { ...(options.headers || {}) }
+  const { timeoutMs = 15000, ...requestOptions } = options
+  const controller = options.signal ? null : new AbortController()
+  const timeout = controller ? window.setTimeout(() => controller.abort(), timeoutMs) : null
 
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
 
-  const response = await fetch(
-    `${BASE_URL}${path}`,
-    { ...options, headers },
-  )
-
-  if (!response.ok) {
-    throw new Error(
-      `API request failed with status ${response.status}`,
-    )
+  let response
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...requestOptions, headers, signal: options.signal ?? controller.signal,
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error(TIMEOUT_MESSAGE, { cause: error })
+      timeoutError.code = 'TIMEOUT'
+      throw timeoutError
+    }
+    throw new Error('No fue posible conectar con la API. Revisa la conexión e inténtalo otra vez.', { cause: error })
+  } finally {
+    if (timeout) window.clearTimeout(timeout)
   }
 
-  return response.json()
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    const detail = body?.detail
+    const message = apiErrorMessage(response.status, detail, response.headers.get('Retry-After'))
+    const error = new Error(message)
+    error.status = response.status
+    throw error
+  }
+
+  return response.status === 204 ? null : response.json()
 }
 
 export function getHealth() {
@@ -44,6 +63,18 @@ export function getCycleDetail(cycleId) {
   )
 }
 
+export function getCycleHistory(cycleId, { signal } = {}) {
+  return apiFetch(`/cycles/${encodeURIComponent(cycleId)}/history`, { signal })
+}
+
+export function getIntercityAudit(cycleId, limit = 50) {
+  return apiFetch(`/audit/intercity?cycleId=${encodeURIComponent(cycleId)}&limit=${limit}`)
+}
+
+export function getMarketBook(cycleId, { includeInactive = true, signal } = {}) {
+  return apiFetch(`/market/book?cycleId=${encodeURIComponent(cycleId)}&includeInactive=${includeInactive}`, { signal })
+}
+
 export function getConnectivity() {
   return apiFetch('/connectivity')
 }
@@ -58,41 +89,35 @@ export function createNegotiation(body) {
   })
 }
 
-export function getAnomalies(filters = {}) {
-  const params = new URLSearchParams()
-
-  for (const [key, value] of Object.entries(filters)) {
-    if (value !== null && value !== undefined && value !== '') {
-      params.append(key, value)
-    }
-  }
-
-  const query = params.toString()
-
-  return apiFetch(
-    query ? `/audit/anomalies?${query}` : '/audit/anomalies',
-  )
+export function getAnomalies(filters = {}, offset = 0, limit = 50) {
+  return apiFetch(`/audit/anomalies?${anomalyQuery(filters, offset, limit)}`)
 }
 
 export function getNegotiation(id) {
   return apiFetch(`/negotiations/${encodeURIComponent(id)}`)
 }
 
-// E2-058: libro de ofertas del ciclo, usando el contrato existente de E2-035/036.
-export function getMarketBook(cycleId, { includeInactive = false, signal } = {}) {
-  const params = new URLSearchParams({
-    cycleId: String(cycleId),
-    includeInactive: String(includeInactive),
+export function getStrategy(cycleId) {
+  const query = cycleId ? `?cycleId=${encodeURIComponent(cycleId)}` : ''
+  return apiFetch(`/market/strategy${query}`)
+}
+
+export function getStrategyOptions() {
+  return apiFetch('/market/strategy/options')
+}
+
+export function updateStrategy(body) {
+  return apiFetch('/market/strategy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   })
-  return apiFetch(`/market/book?${params.toString()}`, { signal })
 }
 
-// E2-059: historial E2 de solo lectura (E2-056), independiente del detalle E1.
-export function getCycleHistory(cycleId, { signal } = {}) {
-  return apiFetch(`/cycles/${encodeURIComponent(cycleId)}/history`, { signal })
+export function getMarketSwaps() {
+  return apiFetch('/market/swaps?limit=20')
 }
 
-// E2-060: swaps E2-057. No exponer tokens ni ejecutar escrituras wallet.
 export function getSwaps({ cycleId = '', role = '', status = '', offset = 0, limit = 20, signal } = {}) {
   const params = new URLSearchParams({ offset: String(offset), limit: String(limit) })
   if (cycleId) params.set('cycleId', cycleId)
@@ -104,4 +129,27 @@ export function getSwaps({ cycleId = '', role = '', status = '', offset = 0, lim
 export function getSwapDetail(id, { signal } = {}) {
   if (!Number.isSafeInteger(id) || id < 1) throw new Error('Identificador interno de swap inválido')
   return apiFetch(`/market/swaps/${id}`, { signal })
+}
+
+export function getCycleMetrics(offset = 0, limit = 50) {
+  return apiFetch(`/market/cycle-metrics/compare?offset=${offset}&limit=${limit}`)
+}
+
+export async function getAllCycleMetrics() {
+  const items = new Map()
+  let offset = 0
+  let total = 1
+  while (offset < total) {
+    const page = await getCycleMetrics(offset, 200)
+    total = page.total ?? 0
+    const rows = page.items ?? []
+    if (!rows.length) break
+    for (const row of rows) items.set(row.cycleId, row)
+    offset += rows.length
+  }
+  return { total: items.size, items: [...items.values()] }
+}
+
+export function getCycleReconciliation(cycleId) {
+  return apiFetch(`/audit/reconciliations?cycleId=${encodeURIComponent(cycleId)}&limit=1`)
 }

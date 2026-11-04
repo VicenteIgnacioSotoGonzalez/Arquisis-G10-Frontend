@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAnomalies } from '../services/api'
+import { ANOMALY_PAGE_SIZE, anomalyLabel, anomalyReasonLabel } from '../services/anomalyAudit'
 
 function formatDate(value) {
   if (!value) {
@@ -13,36 +14,16 @@ function formatDate(value) {
 }
 
 function anomalyStatus(value) {
-  switch (value) {
-    case 'DUPLICATE':
-      return {
-        label: 'Duplicado',
-        className: 'status status-pending',
-      }
-
-    case 'DISCARDED':
-      return {
-        label: 'Descartado',
-        className: 'status status-error',
-      }
-
-    case 'NACKED':
-      return {
-        label: 'Rechazado (NACK)',
-        className: 'status status-error',
-      }
-
-    default:
-      return {
-        label: value ?? '—',
-        className: 'status',
-      }
+  return {
+    label: anomalyLabel(value),
+    className: value === 'DUPLICATE' ? 'status status-pending' : 'status status-error',
   }
 }
 
 const EMPTY_FILTERS = {
   status: '',
   type: '',
+  reasonCode: '',
   idpk: '',
   msgId: '',
 }
@@ -55,11 +36,12 @@ function AnomaliesView({ onBack }) {
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [appliedFilters, setAppliedFilters] =
     useState(EMPTY_FILTERS)
+  const [offset, setOffset] = useState(0)
 
   useEffect(() => {
     let active = true
 
-    getAnomalies(appliedFilters)
+    getAnomalies(appliedFilters, offset, ANOMALY_PAGE_SIZE)
       .then((data) => {
         if (!active) {
           return
@@ -67,6 +49,7 @@ function AnomaliesView({ onBack }) {
 
         setAnomalies(data.items ?? [])
         setTotal(data.total ?? 0)
+        setError(null)
         setLoading(false)
       })
       .catch((err) => {
@@ -81,7 +64,7 @@ function AnomaliesView({ onBack }) {
     return () => {
       active = false
     }
-  }, [appliedFilters])
+  }, [appliedFilters, offset])
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -96,6 +79,7 @@ function AnomaliesView({ onBack }) {
     event.preventDefault()
     setError(null)
     setLoading(true)
+    setOffset(0)
     setAppliedFilters({ ...filters })
   }
 
@@ -103,6 +87,7 @@ function AnomaliesView({ onBack }) {
     setFilters({ ...EMPTY_FILTERS })
     setError(null)
     setLoading(true)
+    setOffset(0)
     setAppliedFilters({ ...EMPTY_FILTERS })
   }
 
@@ -126,9 +111,8 @@ function AnomaliesView({ onBack }) {
           </div>
 
           <p className="page-description">
-            Mensajes duplicados, descartados o
-            rechazados (NACK) registrados por
-            la auditoría de entrada.
+            Mensajes duplicados, descartados, identidad ajena y
+            rechazos NACK registrados por la auditoría de entrada.
           </p>
         </div>
 
@@ -174,13 +158,22 @@ function AnomaliesView({ onBack }) {
           </label>
 
           <label className="anomalies-filter-field">
+            Código de motivo
+            <input name="reasonCode" list="audit-reason-codes" value={filters.reasonCode} onChange={handleChange} placeholder="IDENTITY_MISMATCH" />
+            <datalist id="audit-reason-codes">
+              <option value="IDENTITY_MISMATCH" />
+              <option value="MALFORMED_MESSAGE" />
+            </datalist>
+          </label>
+
+          <label className="anomalies-filter-field">
             Tipo de mensaje
             <input
               type="text"
               name="type"
               value={filters.type}
               onChange={handleChange}
-              placeholder="demand-statement"
+              placeholder="bid, swap-settled..."
             />
           </label>
 
@@ -265,7 +258,10 @@ function AnomaliesView({ onBack }) {
                   <th>Estado</th>
                   <th>Tipo</th>
                   <th>Motivo</th>
+                  <th>msgId</th>
                   <th>idpk</th>
+                  <th>Mensaje original</th>
+                  <th>Emisor</th>
                   <th>Ciclo</th>
                   <th>Recibido</th>
                 </tr>
@@ -292,16 +288,23 @@ function AnomaliesView({ onBack }) {
                       </td>
 
                       <td>
-                        {anomaly.reasonCode ??
+                        {anomalyReasonLabel(anomaly.reasonCode) ??
                           anomaly.reason ??
                           '—'}
+                        {anomaly.reasonCode && anomaly.reason && <small className="audit-reason">{anomaly.reason}</small>}
                       </td>
+
+                      <td className="audit-identifier">{anomaly.msgId ?? '—'}</td>
 
                       <td>
                         <strong className="cycle-id">
                           {anomaly.idpk ?? '—'}
                         </strong>
                       </td>
+
+                      <td className="audit-identifier">{anomaly.relatedMsgId && anomaly.relatedMsgId !== anomaly.msgId ? anomaly.relatedMsgId : '—'}</td>
+
+                      <td>{anomaly.sender ?? '—'}</td>
 
                       <td>
                         {anomaly.cycleId ?? '—'}
@@ -317,6 +320,11 @@ function AnomaliesView({ onBack }) {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="market-pagination">
+            <button type="button" disabled={offset === 0} onClick={() => { setLoading(true); setOffset(Math.max(0, offset - ANOMALY_PAGE_SIZE)) }}>Anterior</button>
+            <span>{offset + 1}–{Math.min(offset + anomalies.length, total)} de {total}</span>
+            <button type="button" disabled={offset + anomalies.length >= total} onClick={() => { setLoading(true); setOffset(offset + ANOMALY_PAGE_SIZE) }}>Siguiente</button>
           </div>
         </section>
       )}

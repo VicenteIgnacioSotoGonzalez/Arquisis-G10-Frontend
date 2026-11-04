@@ -8,6 +8,8 @@ import CycleDetail from './components/CycleDetail'
 import NegotiationForm from './components/NegotiationForm'
 import AnomaliesView from './components/AnomaliesView'
 import NegotiationWindowBanner from './components/NegotiationWindowBanner'
+import MarketStrategyView from './components/MarketStrategyView'
+import SpanExperimentView from './components/SpanExperimentView'
 import MarketBookView from './components/MarketBookView'
 import SwapsView from './components/SwapsView'
 import './App.css'
@@ -58,8 +60,9 @@ function App() {
     useState(false)
   const [showAnomalies, setShowAnomalies] =
     useState(false)
-  const [showMarketBook, setShowMarketBook] =
-    useState(false)
+  const [showMarketStrategy, setShowMarketStrategy] = useState(false)
+  const [showSpanExperiment, setShowSpanExperiment] = useState(false)
+  const [showMarketBook, setShowMarketBook] = useState(false)
   const [showSwaps, setShowSwaps] = useState(false)
 
   const {
@@ -140,46 +143,20 @@ function App() {
     )
   }
 
+  if (showMarketStrategy) {
+    return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">🦈</span><div><p className="brand-name">EnergyShark</p><p className="brand-subtitle">Panel de administración</p></div></div><div className="city-badge">King's Landing · KLD</div><AuthButton /></header><main className="page"><MarketStrategyView cycleId={cycles[0]?.cycleId} onBack={() => setShowMarketStrategy(false)} /></main></div>
+  }
+
+  if (showSpanExperiment) {
+    return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">🦈</span><div><p className="brand-name">EnergyShark</p><p className="brand-subtitle">Panel de administración</p></div></div><div className="city-badge">King's Landing · KLD</div><AuthButton /></header><main className="page"><SpanExperimentView onBack={() => setShowSpanExperiment(false)} /></main></div>
+  }
+
   if (showMarketBook) {
-    return (
-      <div className="app-shell">
-        <header className="topbar">
-          <div className="brand">
-            <span className="brand-mark">🦈</span>
-            <div>
-              <p className="brand-name">EnergyShark</p>
-              <p className="brand-subtitle">Panel de administración</p>
-            </div>
-          </div>
-          <div className="city-badge">King's Landing · KLD</div>
-          <AuthButton />
-        </header>
-        <main className="page">
-          <MarketBookView onBack={() => setShowMarketBook(false)} />
-        </main>
-      </div>
-    )
+    return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">🦈</span><div><p className="brand-name">EnergyShark</p><p className="brand-subtitle">Panel de administración</p></div></div><div className="city-badge">King's Landing · KLD</div><AuthButton /></header><main className="page"><MarketBookView cycleIds={cycles.map((cycle) => cycle.cycleId)} onBack={() => setShowMarketBook(false)} /></main></div>
   }
 
   if (showSwaps) {
-    return (
-      <div className="app-shell">
-        <header className="topbar">
-          <div className="brand">
-            <span className="brand-mark">🦈</span>
-            <div>
-              <p className="brand-name">EnergyShark</p>
-              <p className="brand-subtitle">Panel de administración</p>
-            </div>
-          </div>
-          <div className="city-badge">King's Landing · KLD</div>
-          <AuthButton />
-        </header>
-        <main className="page">
-          <SwapsView onBack={() => setShowSwaps(false)} />
-        </main>
-      </div>
-    )
+    return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">🦈</span><div><p className="brand-name">EnergyShark</p><p className="brand-subtitle">Panel de administración</p></div></div><div className="city-badge">King's Landing · KLD</div><AuthButton /></header><main className="page"><SwapsView onBack={() => setShowSwaps(false)} /></main></div>
   }
 
   if (showConnectivity) {
@@ -333,20 +310,6 @@ function App() {
             <button
               className="page-action-button"
               type="button"
-              onClick={() => setShowMarketBook(true)}
-            >
-              Ver mercado en vivo
-            </button>
-            <button
-              className="page-action-button"
-              type="button"
-              onClick={() => setShowSwaps(true)}
-            >
-              Ver swaps
-            </button>
-            <button
-              className="page-action-button"
-              type="button"
               onClick={() =>
                 setShowConnectivity(true)
               }
@@ -372,6 +335,18 @@ function App() {
               }
             >
               Ver anomalías
+            </button>
+            <button className="page-action-button" type="button" onClick={() => setShowMarketStrategy(true)}>
+              Administrar mercado
+            </button>
+            <button className="page-action-button" type="button" onClick={() => setShowMarketBook(true)}>
+              Ver mercado
+            </button>
+            <button className="page-action-button" type="button" onClick={() => setShowSwaps(true)}>
+              Ver swaps
+            </button>
+            <button className="page-action-button" type="button" onClick={() => setShowSpanExperiment(true)}>
+              Experimento span
             </button>
           </div>
 
