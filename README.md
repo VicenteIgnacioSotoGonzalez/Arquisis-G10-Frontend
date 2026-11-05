@@ -116,7 +116,7 @@ src/
 └── assets/
 
 public/
-├── logoMacquin.png
+├── logo.png
 ├── favicon.svg
 └── icons.svg
 

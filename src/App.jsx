@@ -317,7 +317,7 @@ function App() {
               Ver conectividad
             </button>
 
-            <button
+            {/* <button
               className="page-action-button"
               type="button"
               onClick={() =>
@@ -325,7 +325,7 @@ function App() {
               }
             >
               Nueva negociación
-            </button>
+            </button> */}
 
             <button
               className="page-action-button"
