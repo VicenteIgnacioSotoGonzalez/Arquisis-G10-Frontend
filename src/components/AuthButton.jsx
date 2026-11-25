@@ -1,4 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react'
+import { setSseSession } from '../services/sse'
 
 function AuthButton() {
   const {
@@ -41,13 +42,14 @@ function AuthButton() {
       <button
         type="button"
         className="auth-button auth-button-secondary"
-        onClick={() =>
+        onClick={() => {
+          setSseSession(null)
           logout({
             logoutParams: {
               returnTo: window.location.origin,
             },
           })
-        }
+        }}
       >
         Cerrar sesión
       </button>

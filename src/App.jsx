@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { getCycles } from './services/api'
 import { setTokenGetter } from './services/auth'
+import { setSseSession } from './services/sse'
 import AuthButton from './components/AuthButton'
 import ConnectivityView from './components/ConnectivityView'
 import CycleDetail from './components/CycleDetail'
@@ -68,7 +69,17 @@ function App() {
   const {
     getAccessTokenSilently,
     isAuthenticated,
+    user,
   } = useAuth0()
+  const sseSubject = isAuthenticated ? user?.sub : null
+
+  useEffect(() => {
+    setSseSession(sseSubject, ({ forceRefresh }) => getAccessTokenSilently({
+      authorizationParams: { scope: 'read:events' },
+      cacheMode: forceRefresh ? 'off' : 'on',
+    }))
+    return () => setSseSession(null)
+  }, [sseSubject, getAccessTokenSilently])
 
   useEffect(() => {
     if (isAuthenticated) {
