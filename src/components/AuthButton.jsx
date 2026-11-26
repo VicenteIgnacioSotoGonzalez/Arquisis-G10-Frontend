@@ -1,7 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { setSseSession } from '../services/sse'
 
-function AuthButton() {
+function AuthButton({ onLogout }) {
   const {
     isAuthenticated,
     isLoading,
@@ -44,6 +44,7 @@ function AuthButton() {
         className="auth-button auth-button-secondary"
         onClick={() => {
           setSseSession(null)
+          onLogout?.()
           logout({
             logoutParams: {
               returnTo: window.location.origin,
