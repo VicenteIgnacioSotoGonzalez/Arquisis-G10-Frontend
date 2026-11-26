@@ -6,7 +6,8 @@ import { JSDOM } from 'jsdom'
 import { runnerImport } from 'vite'
 
 const apiUrl = 'https://events.test.invalid'
-process.env.VITE_API_URL = apiUrl
+process.env.VITE_API_URL = 'https://api.test.invalid'
+process.env.VITE_SSE_ORIGIN = apiUrl
 const { module: { default: LiveEventsPanel } } = await runnerImport('/src/components/LiveEventsPanel.jsx', {
   envDir: false,
   mode: 'test',
@@ -194,8 +195,9 @@ for (const status of [401, 403]) {
     assert.equal(connection(container), 'Cargando sesión…')
     assert.equal(requests.length, 0)
     await render({ isAuthLoading: false })
-    await until(() => connection(container) === 'Acceso denegado')
-    assert.match(container.querySelector('[role="alert"]').textContent, /permiso para leer eventos/)
+    await until(() => connection(container) === (status === 401 ? 'Sesión no válida' : 'Acceso denegado'))
+    assert.match(container.querySelector('[role="alert"]').textContent,
+      status === 401 ? /Vuelve a iniciar sesión/ : /permiso para leer eventos/)
     assert.equal(requests.length, status === 401 ? 2 : 1)
     assert.equal(auth.filter(({ cacheMode }) => cacheMode === 'off').length, status === 401 ? 1 : 0)
     assert.equal(rows(container).length, 0)
@@ -219,4 +221,23 @@ test('a rejected cursor clears the list and offers deliberate replay from the be
   assert.equal(requests[2].headers['Last-Event-ID'], undefined)
   await act(async () => replay.send(frame(1)))
   assert.equal(rows(container).length, 1)
+})
+
+
+test('a 401 clears the visible feed while Auth0 attempts renewal', async (t) => {
+  const feed = stream()
+  const { container, requests, render } = await mount(t,
+    (number) => number === 1 ? feed.response : new Response(null, { status: 401 }),
+    { getAccessTokenSilently: ({ cacheMode }) => cacheMode === 'off'
+      ? new Promise(() => {})
+      : Promise.resolve(token('alice')) })
+  await until(() => connection(container) === 'En vivo')
+  await act(async () => feed.send(frame(13)))
+  assert.equal(rows(container).length, 1)
+  await act(async () => feed.end())
+  await until(() => connection(container) === 'Renovando sesión…')
+  assert.equal(rows(container).length, 0)
+  assert.equal(requests[1].headers['Last-Event-ID'], '13')
+  await render({ subject: null })
+  assert.match(connection(container), /Inicia sesión/)
 })

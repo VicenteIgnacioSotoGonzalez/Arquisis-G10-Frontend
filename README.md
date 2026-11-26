@@ -158,7 +158,7 @@ La navegación se controla actualmente mediante estado React y no utiliza React 
 
 ## API consumida
 
-La aplicación utiliza `VITE_API_URL` como URL base.
+La aplicación utiliza `VITE_API_URL` como URL base. La actividad en vivo usa `VITE_SSE_ORIGIN` para acceder a `GET /events/stream`. Consulta la [configuración por ambiente y el plan de prueba SSE](notes/E3-032-033-SSE.md).
 
 En producción:
 
