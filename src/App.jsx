@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { getCycles } from './services/api'
 import { setTokenGetter } from './services/auth'
-import { setSseSession } from './services/sse'
 import AuthButton from './components/AuthButton'
+import LiveEventsPanel from './components/LiveEventsPanel'
 import ConnectivityView from './components/ConnectivityView'
 import CycleDetail from './components/CycleDetail'
 import NegotiationForm from './components/NegotiationForm'
@@ -65,21 +65,14 @@ function App() {
   const [showSpanExperiment, setShowSpanExperiment] = useState(false)
   const [showMarketBook, setShowMarketBook] = useState(false)
   const [showSwaps, setShowSwaps] = useState(false)
+  const [showLiveEvents, setShowLiveEvents] = useState(false)
 
   const {
     getAccessTokenSilently,
     isAuthenticated,
+    isLoading: isAuthLoading,
     user,
   } = useAuth0()
-  const sseSubject = isAuthenticated ? user?.sub : null
-
-  useEffect(() => {
-    setSseSession(sseSubject, ({ forceRefresh }) => getAccessTokenSilently({
-      authorizationParams: { scope: 'read:events' },
-      cacheMode: forceRefresh ? 'off' : 'on',
-    }))
-    return () => setSseSession(null)
-  }, [sseSubject, getAccessTokenSilently])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -116,6 +109,32 @@ function App() {
       active = false
     }
   }, [])
+
+  if (showLiveEvents) {
+    return (
+      <div className="app-shell">
+        <header className="topbar">
+          <div className="brand">
+            <span className="brand-mark">🦈</span>
+            <div>
+              <p className="brand-name">EnergyShark</p>
+              <p className="brand-subtitle">Panel de administración</p>
+            </div>
+          </div>
+          <div className="city-badge">King's Landing · KLD</div>
+          <AuthButton onLogout={() => setShowLiveEvents(false)} />
+        </header>
+        <main className="page">
+          <LiveEventsPanel
+            subject={isAuthenticated ? user?.sub : null}
+            isAuthLoading={isAuthLoading}
+            getAccessTokenSilently={getAccessTokenSilently}
+            onBack={() => setShowLiveEvents(false)}
+          />
+        </main>
+      </div>
+    )
+  }
 
   if (selectedCycleId) {
     return (
@@ -318,6 +337,9 @@ function App() {
           </div>
 
           <div className="page-actions">
+            <button className="page-action-button" type="button" onClick={() => setShowLiveEvents(true)}>
+              Actividad en vivo
+            </button>
             <button
               className="page-action-button"
               type="button"

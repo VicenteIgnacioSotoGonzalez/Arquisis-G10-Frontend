@@ -220,6 +220,86 @@
 .market-book-view .market-panel select { max-width: 320px; padding: 8px; border: 1px solid #c8d4e3; border-radius: 8px; background: #fff; }
 .market-warning { color: #8a5300; font-weight: 700; }
 
+.live-events h1 {
+  margin: 18px 0 8px;
+  color: #17283e;
+}
+
+.live-events-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 24px 0 16px;
+}
+
+.live-events-filter {
+  display: grid;
+  gap: 6px;
+  font-weight: 650;
+}
+
+.live-events-filter select {
+  max-width: 100%;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid #9baec4;
+  border-radius: 8px;
+  background: #fff;
+  color: #17283e;
+  font: inherit;
+}
+
+.live-events-status {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #edf3fa;
+  color: #2b4869;
+  font-weight: 700;
+}
+
+.live-events-status--connected { background: #e3f6ec; color: #14613d; }
+.live-events-status--reconnecting { background: #fff1d8; color: #754600; }
+.live-events-status--unauthorized,
+.live-events-status--invalid-cursor,
+.live-events-status--closed,
+.live-events-error { background: #fdeadf; color: #8d2920; }
+
+.live-events-error,
+.live-events-empty {
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.live-events-empty { background: #f5f8fc; }
+.live-events-context,
+.live-events-meta { color: #4d6179; }
+
+.live-events-list {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.live-events-entry {
+  padding: 12px 0;
+  border-top: 1px solid #dfe7f0;
+  overflow-wrap: anywhere;
+}
+
+.live-events-entry-main,
+.live-events-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.live-events-entry p { margin: 4px 0; }
+.live-events-meta { margin-top: 4px; font-size: 0.875rem; }
+.live-events-event-status { font-size: 0.875rem; font-weight: 700; }
+
 .module-back-button {
   min-height: 36px;
   padding: 7px 13px;
