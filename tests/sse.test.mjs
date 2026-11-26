@@ -50,7 +50,11 @@ test('fetch transports Bearer token in header and Last-Event-ID; ignores duplica
   assert.equal(feed.getLastEventId(), '11')
   assert.equal(requests[0].init.headers.Authorization, 'Bearer dummy-token')
   assert.equal(requests[0].init.headers['Last-Event-ID'], '9')
-  assert.ok(!requests[0].url.includes('dummy-token'))
+  assert.equal(requests[0].url, 'https://api.test.local/events/stream')
+  assert.equal(requests[0].init.mode, 'cors')
+  assert.equal(requests[0].init.credentials, 'omit')
+  assert.equal(requests[0].init.redirect, 'error')
+  assert.equal(requests[0].init.cache, 'no-store')
 })
 
 test('401 does not retry or expose credentials', async () => {
@@ -378,7 +382,7 @@ for (const status of [400, 403, 409]) {
     await open('alice', frame(5))
     const { cursors, statuses } = await open('alice', status)
     assert.deepEqual(cursors, ['5'])
-    assert.ok(statuses.includes(status === 403 ? 'unauthorized' : 'invalid-cursor'))
+    assert.ok(statuses.includes(status === 403 ? 'forbidden' : 'invalid-cursor'))
     assert.deepEqual([...storage.entries.values()], ['2'])
     assert.deepEqual((await open('alice', '')).cursors, [undefined])
   })
@@ -410,4 +414,106 @@ test('close cleans up a pending read and interrupts reconnect backoff', async ()
   waitingFeed.close()
   await waitingFeed.done
   assert.equal(attempts, 1)
+})
+
+
+test('requires a secure SSE origin before selecting a token', async () => {
+  const options = {
+    onEvent: () => {},
+    tokenProvider: async () => assert.fail('unexpected token selection'),
+    fetchImpl: async () => assert.fail('unexpected request'),
+  }
+  for (const apiUrl of ['', '/api', 'http://remote.test.invalid', 'https://example.test/feed',
+    'https://user:pass@example.test', 'https://example.test/?jwt=sentinel', 'https://example.test/#fragment',
+    'https://example.test\\redirect', 'https://invalid:port']) {
+    assert.throws(() => openSseFeed({ ...options, apiUrl }), /SSE origin is not configured/)
+  }
+
+  const local = []
+  await openSseFeed({
+    apiUrl: 'http://127.0.0.1:8001/',
+    tokenProvider: async () => 'test-token',
+    onEvent: () => {},
+    reconnect: false,
+    fetchImpl: async (url) => { local.push(url); return response('') },
+  }).done
+  assert.deepEqual(local, ['http://127.0.0.1:8001/events/stream'])
+})
+
+test('a browser CORS/network rejection backs off, caps the delay and resumes the cursor', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const reconnects = [latch(), latch(), latch()]
+  const errors = []
+  const requests = []
+  const transportOptions = {
+    apiUrl, tokenProvider: async () => 'test-token', storage: null,
+    lastEventId: '23', minRetryMs: 100, maxRetryMs: 150,
+    onEvent: () => {},
+    onError: (error) => errors.push(error.message),
+    fetchImpl: async (_url, init) => {
+      requests.push(init.headers['Last-Event-ID'])
+      if (requests.length < 4) throw new TypeError('CORS error with private details')
+      connection.close()
+      return response('')
+    },
+  }
+  const connection = openSseFeed({
+    ...transportOptions,
+    onStatus() {
+      if (errors.length && requests.length === errors.length) reconnects[errors.length - 1].resolve()
+    },
+  })
+  await reconnects[0].promise
+  for (const [index, delay] of [100, 150, 150].entries()) {
+    t.mock.timers.tick(delay - 1)
+    assert.equal(requests.length, index + 1)
+    t.mock.timers.tick(1)
+    await (index < 2 ? reconnects[index + 1].promise : connection.done)
+  }
+  assert.deepEqual(requests, ['23', '23', '23', '23'])
+  assert.deepEqual(errors, Array(3).fill('SSE connection interrupted'))
+})
+
+test('an active stream reaching JWT expiry reconnects with a fresh token and the completed cursor', async (t) => {
+  const issuedAt = Date.now()
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: issuedAt })
+  t.after(() => setSseSession(null))
+  const expiredAt = (issuedAt + 2000) / 1000
+  const firstToken = jwt('alice', { exp: expiredAt })
+  const freshToken = jwt('alice')
+  const processed = latch()
+  const waiting = latch()
+  const requests = []
+  const refresh = []
+  let cancellations = 0
+  const active = new ReadableStream({
+    start(writer) { writer.enqueue(new TextEncoder().encode(frame(23))) },
+    cancel() { cancellations++ },
+  })
+  setSseSession('alice', async ({ forceRefresh }) => {
+    refresh.push(forceRefresh)
+    return forceRefresh ? freshToken : firstToken
+  })
+  const connection = openSseFeed({
+    apiUrl, storage: null, minRetryMs: 100,
+    onEvent(event) {
+      if (event.id === 23) processed.resolve()
+      if (event.id === 24) connection.close()
+    },
+    onStatus(status) { if (status === 'reconnecting') waiting.resolve() },
+    fetchImpl: async (_url, { headers }) => {
+      requests.push([headers.Authorization, headers['Last-Event-ID']])
+      return requests.length === 1
+        ? new Response(active, { headers: { 'Content-Type': 'text/event-stream' } })
+        : response(frame(24))
+    },
+  })
+  await processed.promise
+  t.mock.timers.tick(2000)
+  await waiting.promise
+  t.mock.timers.tick(100)
+  await connection.done
+  assert.equal(cancellations, 1)
+  assert.deepEqual(refresh, [false, true])
+  assert.deepEqual(requests, [['Bearer ' + firstToken, undefined], ['Bearer ' + freshToken, '23']])
 })

@@ -128,7 +128,6 @@ function App() {
           <LiveEventsPanel
             subject={isAuthenticated ? user?.sub : null}
             isAuthLoading={isAuthLoading}
-            getAccessTokenSilently={getAccessTokenSilently}
             onBack={() => setShowLiveEvents(false)}
           />
         </main>

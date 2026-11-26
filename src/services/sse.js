@@ -196,9 +196,25 @@ function checkpoints(storage, key) {
 
 const AUTH_ERRORS = new Set(['login_required', 'consent_required', 'interaction_required', 'missing_refresh_token'])
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
+
+function streamUrl(origin) {
+  // Require an origin so credentials, path prefixes and URL parameters cannot leak.
+  const value = typeof origin === 'string' ? origin.trim() : ''
+  if (/^https?:\/\/[^/@?#\\\s]+\/?$/i.test(value)) {
+    try {
+      const url = new URL(value)
+      if (url.protocol === 'https:' || LOCAL_HOSTS.has(url.hostname)) return url.origin + '/events/stream'
+    } catch {
+      // Report invalid configuration without including the supplied value.
+    }
+  }
+  throw new Error('SSE origin is not configured')
+}
+
 /** Open a Bearer SSE connection. Consumer callbacks may acknowledge asynchronously. */
 export function openSseFeed({
-  apiUrl = import.meta.env?.VITE_API_URL,
+  apiUrl = import.meta.env?.VITE_SSE_ORIGIN,
   onEvent,
   onStatus = () => {},
   onError = () => {},
@@ -210,7 +226,7 @@ export function openSseFeed({
   minRetryMs = 1000,
   maxRetryMs = 15000,
 } = {}) {
-  if (!apiUrl || !/^https?:\/\//.test(apiUrl)) throw new Error('API URL is not configured')
+  const url = streamUrl(apiUrl)
   if (typeof onEvent !== 'function') throw new TypeError('onEvent is required')
   if (tokenProvider !== undefined && typeof tokenProvider !== 'function') throw new TypeError('tokenProvider is required')
 
@@ -218,7 +234,6 @@ export function openSseFeed({
   const boundSession = managed ? session : null
   const controller = new AbortController()
   const { signal } = controller
-  const url = apiUrl.replace(/\/+$/, '') + '/events/stream'
   let cursor = !managed && validId(lastEventId) ? lastEventId : ''
   let authority
   let checkpoint
@@ -232,20 +247,22 @@ export function openSseFeed({
   }
   boundSession?.connections.add(invalidate)
 
-  async function consume(response) {
+  async function consume(response, expiresAt) {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     const frames = []
     const parser = createSseParser((frame) => frames.push(frame))
     const cancel = () => { void reader.cancel().catch(() => {}) }
     signal.addEventListener('abort', cancel, { once: true })
+    const timeLeft = expiresAt - Date.now()
+    const expiryTimer = timeLeft <= 2 ** 31 - 1 ? setTimeout(cancel, timeLeft) : undefined
     try {
       while (!signal.aborted) {
         const { done, value } = await reader.read()
-        if (done || signal.aborted) break
+        if (done || signal.aborted || Date.now() >= expiresAt) break
         parser.push(decoder.decode(value, { stream: true }))
         for (const frame of frames) {
-          if (signal.aborted) break
+          if (signal.aborted || Date.now() >= expiresAt) break
           if (!newerId(frame.id, cursor)) continue
           const event = parseEvent(frame)
           if (!event) continue
@@ -258,6 +275,7 @@ export function openSseFeed({
         frames.length = 0
       }
     } finally {
+      clearTimeout(expiryTimer)
       parser.finish()
       signal.removeEventListener('abort', cancel)
       cancel()
@@ -265,14 +283,16 @@ export function openSseFeed({
     }
   }
 
-  function denied(message) {
-    onStatus('unauthorized')
+  function denied(message, status = 'unauthorized') {
+    controller.abort()
+    onStatus(status)
     onError(new Error(message))
   }
 
   async function run() {
     let forceRefresh = false
     let rejectedToken
+    let refreshingSession = false
     try {
       while (!signal.aborted) {
         try {
@@ -306,10 +326,12 @@ export function openSseFeed({
 
           const headers = { Accept: 'text/event-stream', Authorization: 'Bearer ' + token }
           if (cursor) headers['Last-Event-ID'] = cursor
-          onStatus(retries || forceRefresh ? 'reconnecting' : 'connecting')
+          if (!refreshingSession) onStatus(retries || forceRefresh ? 'reconnecting' : 'connecting')
           if (signal.aborted) break
           const response = await fetchImpl(url, {
-            method: 'GET', headers, signal, cache: 'no-store',
+            method: 'GET', headers, signal,
+            mode: 'cors', credentials: 'omit', redirect: 'error',
+            cache: 'no-store', referrerPolicy: 'no-referrer',
           })
           if (signal.aborted) {
             void response.body?.cancel().catch(() => {})
@@ -319,14 +341,18 @@ export function openSseFeed({
           if (response.status === 401 && managed && !forceRefresh && reconnect) {
             rejectedToken = token
             forceRefresh = true
+            refreshingSession = true
+            onStatus('refreshing-session')
             continue
           }
-          if (response.status === 401 || response.status === 403) {
-            if (response.status === 403) {
-              checkpoint.clear()
-              cursor = ''
-            }
-            denied('SSE access denied')
+          if (response.status === 401) {
+            denied('SSE authentication failed')
+            break
+          }
+          if (response.status === 403) {
+            checkpoint.clear()
+            cursor = ''
+            denied('SSE access denied', 'forbidden')
             break
           }
           if (response.status === 400 || response.status === 409) {
@@ -343,12 +369,18 @@ export function openSseFeed({
           }
           forceRefresh = false
           rejectedToken = undefined
+          refreshingSession = false
           onStatus('connected')
           if (signal.aborted) {
             void response.body.cancel().catch(() => {})
             break
           }
-          await consume(response)
+          const expiresAt = claims ? claims.exp * 1000 : Infinity
+          await consume(response, expiresAt)
+          if (Date.now() >= expiresAt) {
+            rejectedToken = token
+            forceRefresh = true
+          }
         } catch (error) {
           if (signal.aborted) break
           if (AUTH_ERRORS.has(error?.error)) {

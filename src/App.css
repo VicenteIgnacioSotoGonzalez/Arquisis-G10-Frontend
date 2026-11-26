@@ -263,6 +263,8 @@
 .live-events-status--connected { background: #e3f6ec; color: #14613d; }
 .live-events-status--reconnecting { background: #fff1d8; color: #754600; }
 .live-events-status--unauthorized,
+.live-events-status--forbidden,
+.live-events-status--unconfigured,
 .live-events-status--invalid-cursor,
 .live-events-status--closed,
 .live-events-error { background: #fdeadf; color: #8d2920; }

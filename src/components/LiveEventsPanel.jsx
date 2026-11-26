@@ -1,5 +1,6 @@
-import { useEffect, useEffectEvent, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { openSseFeed, setSseSession } from '../services/sse.js'
+import { createSseAccessTokenGetter } from '../services/sseAuth.js'
 
 const EVENT_LIMIT = 100
 const FAMILIES = {
@@ -13,10 +14,14 @@ const CONNECTION_LABELS = {
   connecting: 'Conectando…',
   connected: 'En vivo',
   reconnecting: 'Reconectando…',
-  unauthorized: 'Acceso denegado',
+  'refreshing-session': 'Renovando sesión…',
+  unauthorized: 'Sesión no válida',
+  forbidden: 'Acceso denegado',
+  unconfigured: 'Origen de eventos no configurado',
   'invalid-cursor': 'Cursor rechazado',
   closed: 'Conexión cerrada',
 }
+const TERMINAL_STATUSES = ['unauthorized', 'forbidden', 'invalid-cursor', 'unconfigured']
 const ORIGINS = {
   INBOUND: 'Entrada',
   OUTBOUND: 'Salida',
@@ -52,18 +57,18 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
   const [interrupted, setInterrupted] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const filterId = useId()
-  const getToken = useEffectEvent(({ forceRefresh }) => getAccessTokenSilently({
-    authorizationParams: { scope: 'read:events' },
-    cacheMode: forceRefresh ? 'off' : 'on',
-  }))
 
   useEffect(() => {
     let active = true
     let connection
-    setSseSession(subject, (options) => getToken(options))
-
     try {
+      const getAccessToken = getAccessTokenSilently ?? createSseAccessTokenGetter()
+      setSseSession(subject, ({ forceRefresh }) => getAccessToken({
+        authorizationParams: { scope: 'read:events' },
+        cacheMode: forceRefresh ? 'off' : 'on',
+      }))
       connection = openSseFeed({
+        apiUrl: import.meta.env.VITE_SSE_ORIGIN,
         onEvent(event) {
           if (!active) return
           // E3-034 delivers increasing IDs even when capture timestamps go backwards.
@@ -73,11 +78,11 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
         },
         onStatus(next) {
           if (!active) return
-          setStatus((previous) => next === 'closed' && ['unauthorized', 'invalid-cursor'].includes(previous)
+          setStatus((previous) => next === 'closed' && TERMINAL_STATUSES.includes(previous)
             ? previous
             : next)
           if (next === 'connected') setInterrupted(false)
-          if (['unauthorized', 'invalid-cursor', 'closed'].includes(next)) setEvents([])
+          if (TERMINAL_STATUSES.includes(next) || next === 'refreshing-session' || next === 'closed') setEvents([])
         },
         onError() {
           if (active) setInterrupted(true)
@@ -85,7 +90,7 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
       })
     } catch {
       // Keep configuration details and any transport error out of the UI.
-      queueMicrotask(() => { if (active) setStatus('closed') })
+      queueMicrotask(() => { if (active) setStatus('unconfigured') })
     }
 
     return () => {
@@ -93,7 +98,7 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
       connection?.close()
       setSseSession(null)
     }
-  }, [subject, attempt])
+  }, [subject, attempt, getAccessTokenSilently])
 
   function restart() {
     setEvents([])
@@ -103,7 +108,7 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
   }
 
   const visible = family === 'all' ? events : events.filter((event) => event.type === family)
-  const failure = ['unauthorized', 'invalid-cursor', 'closed'].includes(status)
+  const failure = TERMINAL_STATUSES.includes(status) || status === 'closed'
 
   return (
     <>
@@ -120,14 +125,20 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
       </div>
 
       {status === 'unauthorized' && <p className="live-events-error" role="alert">
-        Se necesita una sesión vigente con permiso para leer eventos. Vuelve a iniciar sesión o solicita acceso.
+        Vuelve a iniciar sesión para leer los eventos.
+      </p>}
+      {status === 'forbidden' && <p className="live-events-error" role="alert">
+        Tu cuenta no tiene permiso para leer eventos. Solicita acceso.
+      </p>}
+      {status === 'unconfigured' && <p className="live-events-error" role="alert">
+        El origen de actividad en vivo no está disponible en este ambiente.
       </p>}
       {status === 'invalid-cursor' && <p className="live-events-error" role="alert">
         El servidor rechazó el cursor. Puedes volver a cargar el historial desde el inicio.
       </p>}
       {status === 'closed' && <p className="live-events-error" role="alert">No se pudo mantener el flujo de eventos.</p>}
       {status === 'reconnecting' && interrupted && <p className="live-events-error" role="alert">
-        Hubo un problema con el flujo. La reconexión automática conserva la posición de lectura.
+        No se pudo conectar con el flujo. La reconexión automática conserva la posición de lectura.
       </p>}
       {['invalid-cursor', 'closed'].includes(status) && (
         <button className="page-action-button" type="button" onClick={restart}>
