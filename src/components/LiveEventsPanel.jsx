@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { openSseFeed, setSseSession } from '../services/sse.js'
+import { openSseFeed, searchSseEvents, setSseSession } from '../services/sse.js'
 import { createSseAccessTokenGetter } from '../services/sseAuth.js'
 
 const EVENT_LIMIT = 100
@@ -26,14 +26,33 @@ const ORIGINS = {
   INBOUND: 'Entrada',
   OUTBOUND: 'Salida',
   RECONCILIATION: 'Conciliación',
+  SAGA: 'Ejecución de saga',
+  MONITORING: 'Monitoreo',
 }
 const FAILURE_STATUSES = new Set(['FAILED', 'NACKED', 'DISCARDED', 'ERROR', 'MISMATCH'])
+const ALERTS = {
+  'ledger-wallet-delta': { title: 'Diferencia entre ledger y Wallet', severity: 'Alta' },
+  'saga-stuck': { title: 'Saga atascada', severity: 'Alta' },
+  'outbox-aged': { title: 'Outbox envejecido', severity: 'Aviso' },
+  'wallet-slow': { title: 'Wallet lenta', severity: 'Aviso' },
+  'consumer-lag': { title: 'Consumidor atrasado', severity: 'Aviso' },
+}
+const SAGA_STATES = {
+  PENDING_START: 'Pendiente de inicio', RUNNING: 'En ejecución', WAITING: 'En espera',
+  SETTLED: 'Liquidación registrada por la saga', REJECTED: 'Saga rechazada',
+  FAILED: 'Saga fallida', COMPENSATED: 'Saga compensada', TIMED_OUT: 'Saga vencida',
+}
+const SEARCH_FIELDS = { cycleId: 'ID del ciclo', swapId: 'ID del swap', idpk: 'Clave de correlación (idpk)' }
+const EMPTY_SEARCH = { status: 'idle', events: [], next: '' }
 const dateFormatter = new Intl.DateTimeFormat('es-CL', {
   dateStyle: 'short', timeStyle: 'medium',
 })
 
 function describeEvent(event) {
   const { messageType, source, status } = event.data
+  if (messageType === 'saga-transition') return Object.hasOwn(SAGA_STATES, status) ? SAGA_STATES[status] : 'Estado de saga registrado'
+  if (messageType === 'ledger-wallet-delta') return 'Conciliación divergente registrada'
+  if (Object.hasOwn(ALERTS, messageType)) return 'Apertura de alerta observada'
   if (messageType === 'nack') return 'Recepción rechazada por el protocolo'
   if (FAILURE_STATUSES.has(status)) return 'Fallo o discrepancia registrada'
   if (source === 'INBOUND' && status === 'PROCESSED') {
@@ -50,17 +69,114 @@ function describeEvent(event) {
   return null
 }
 
-function LiveEventsFeed({ subject, getAccessTokenSilently }) {
+function EventList({ events, label, onOpenCycle }) {
+  return (
+    <ol className="live-events-list" aria-label={label}>
+      {events.map((event) => {
+        const { messageType, source, status } = event.data
+        const description = describeEvent(event)
+        const alert = Object.hasOwn(ALERTS, messageType) ? ALERTS[messageType] : null
+        return (
+          <li key={event.id} className="live-events-entry">
+            <div className="live-events-entry-main">
+              <strong>{alert?.title ?? (messageType === 'saga-transition' ? 'Transición de saga' : messageType)}</strong>
+              <span>{FAMILIES[event.type]}</span>
+              <span className="live-events-event-status">{status}</span>
+              {alert && <span className="live-events-severity" data-severity={alert.severity}>{alert.severity}</span>}
+            </div>
+            {description && <p>{description}</p>}
+            <div className="live-events-meta">
+              <span>#{event.id}</span>
+              <time dateTime={event.occurredAt}>{dateFormatter.format(new Date(event.occurredAt))}</time>
+              <span>{ORIGINS[source]}</span>
+              {event.cycleId !== null && <span>Ciclo {event.cycleId}</span>}
+            </div>
+            <details className="live-events-detail">
+              <summary>Detalle del evento #{event.id}</summary>
+              <p>Código: <code>{messageType}</code></p>
+              {alert && <p>Prioridad visual: {alert.severity}</p>}
+              {event.cycleId && onOpenCycle && (
+                <button type="button" className="module-back-button" onClick={() => onOpenCycle(event.cycleId)}>
+                  Ver detalle del ciclo
+                </button>
+              )}
+            </details>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+function LiveEventsFeed({ subject, getAccessTokenSilently, onOpenCycle }) {
   const [events, setEvents] = useState([])
   const [family, setFamily] = useState('all')
   const [status, setStatus] = useState('connecting')
   const [interrupted, setInterrupted] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const [lastSignal, setLastSignal] = useState(null)
+  const [stale, setStale] = useState(false)
+  const [deliveryLag, setDeliveryLag] = useState(null)
+  const [searchField, setSearchField] = useState('cycleId')
+  const [search, setSearch] = useState(EMPTY_SEARCH)
+  const searchRun = useRef(null)
+  const searchSelector = useRef(null)
+  const feed = useRef(null)
+  const searchInput = useRef(null)
   const filterId = useId()
+  const searchId = useId()
+
+  function clearSearch() {
+    searchRun.current?.abort()
+    searchRun.current = null
+    searchSelector.current = null
+    if (searchInput.current) searchInput.current.value = ''
+    setSearch(EMPTY_SEARCH)
+  }
+
+  async function runSearch(selector, after) {
+    searchRun.current?.abort()
+    const controller = new AbortController()
+    searchRun.current = controller
+    searchSelector.current = null
+    setSearch({ ...EMPTY_SEARCH, status: 'loading' })
+    const result = await searchSseEvents({ ...selector, after, signal: controller.signal })
+      .catch(() => ({ status: 'unavailable' }))
+    if (controller.signal.aborted) return
+    searchRun.current = null
+    if (result.status === 'forbidden' || result.status === 'unauthorized') {
+      if (result.status === 'forbidden') feed.current?.revoke()
+      else feed.current?.close()
+      clearSearch()
+      setEvents([])
+      setLastSignal(null)
+      setDeliveryLag(null)
+      setStatus(result.status)
+      return
+    }
+    if (result.next) searchSelector.current = selector
+    setSearch({ ...EMPTY_SEARCH, ...result })
+  }
+
+  function submitSearch(event) {
+    event.preventDefault()
+    const value = searchInput.current.value
+    searchInput.current.value = ''
+    void runSearch({ field: searchField, value })
+  }
 
   useEffect(() => {
     let active = true
     let connection
+    let freshnessTimer
+    function markSignal(receivedAt = Date.now()) {
+      if (!active) return
+      setLastSignal(receivedAt)
+      setStale(false)
+      clearTimeout(freshnessTimer)
+      freshnessTimer = setTimeout(() => setStale(true), 45000)
+    }
+
     try {
       const getAccessToken = getAccessTokenSilently ?? createSseAccessTokenGetter()
       setSseSession(subject, ({ forceRefresh }) => getAccessToken({
@@ -69,8 +185,13 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
       }))
       connection = openSseFeed({
         apiUrl: import.meta.env.VITE_SSE_ORIGIN,
+        onHeartbeat() { markSignal() },
         onEvent(event) {
           if (!active) return
+          const receivedAt = Date.now()
+          markSignal(receivedAt)
+          const lag = receivedAt - Date.parse(event.occurredAt)
+          setDeliveryLag(lag >= 0 ? Math.round(lag / 1000) : null)
           // E3-034 delivers increasing IDs even when capture timestamps go backwards.
           setEvents((current) => (current.length && BigInt(event.id) <= BigInt(current[0].id)
             ? current
@@ -81,13 +202,24 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
           setStatus((previous) => next === 'closed' && TERMINAL_STATUSES.includes(previous)
             ? previous
             : next)
-          if (next === 'connected') setInterrupted(false)
-          if (TERMINAL_STATUSES.includes(next) || next === 'refreshing-session' || next === 'closed') setEvents([])
+          if (next === 'connected') {
+            setInterrupted(false)
+            markSignal()
+          } else {
+            clearTimeout(freshnessTimer)
+          }
+          if (TERMINAL_STATUSES.includes(next) || next === 'refreshing-session' || next === 'closed') {
+            setEvents([])
+            setLastSignal(null)
+            setDeliveryLag(null)
+            clearSearch()
+          }
         },
         onError() {
           if (active) setInterrupted(true)
         },
       })
+      feed.current = connection
     } catch {
       // Keep configuration details and any transport error out of the UI.
       queueMicrotask(() => { if (active) setStatus('unconfigured') })
@@ -95,6 +227,10 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
 
     return () => {
       active = false
+      clearTimeout(freshnessTimer)
+      searchRun.current?.abort()
+      searchSelector.current = null
+      feed.current = null
       connection?.close()
       setSseSession(null)
     }
@@ -108,6 +244,8 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
   }
 
   const visible = family === 'all' ? events : events.filter((event) => event.type === family)
+  const searchAvailable = status === 'connected' || status === 'reconnecting'
+  const visibleMatches = family === 'all' ? search.events : search.events.filter((event) => event.type === family)
   const failure = TERMINAL_STATUSES.includes(status) || status === 'closed'
 
   return (
@@ -146,30 +284,62 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
         </button>
       )}
 
+      {lastSignal !== null && (
+        <p className="live-events-context">
+          Última señal del flujo <time dateTime={new Date(lastSignal).toISOString()}>{dateFormatter.format(lastSignal)}</time>.
+          {deliveryLag !== null && <> Retraso de entrega del último evento: {deliveryLag} s.</>}
+        </p>
+      )}
+      {status === 'connected' && stale && <p className="live-events-error" role="alert">
+        El flujo lleva al menos 45 s sin señales.
+      </p>}
+
+      {searchAvailable && (
+        <section className="live-events-search" aria-labelledby={searchId + '-heading'}>
+          <h2 id={searchId + '-heading'}>Buscar por correlación</h2>
+          <form className="live-events-search-form" onSubmit={submitSearch} autoComplete="off">
+            <div className="live-events-filter">
+              <label htmlFor={searchId + '-field'}>Buscar por</label>
+              <select id={searchId + '-field'} value={searchField} onChange={(event) => {
+                clearSearch()
+                setSearchField(event.target.value)
+              }}>
+                {Object.entries(SEARCH_FIELDS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+              </select>
+            </div>
+            <div className="live-events-filter">
+              <label htmlFor={searchId + '-value'}>{SEARCH_FIELDS[searchField]}</label>
+              <input id={searchId + '-value'} ref={searchInput} type={searchField === 'idpk' ? 'password' : 'text'}
+                required maxLength={256} autoComplete="off" spellCheck={false} />
+            </div>
+            <button type="submit" className="page-action-button">Buscar eventos</button>
+            {search.status !== 'idle' && <button type="button" className="module-back-button" onClick={clearSearch}>
+              Limpiar búsqueda
+            </button>}
+          </form>
+          <p role="status">
+            {search.status === 'loading' && 'Buscando eventos publicados…'}
+            {search.status === 'ready' && (search.events.length
+              ? `${visibleMatches.length} de ${search.events.length} coincidencias en esta página.`
+              : 'Sin coincidencias en esta página.')}
+          </p>
+          {search.status === 'invalid' && <p className="live-events-error" role="alert">El filtro de búsqueda no es válido.</p>}
+          {search.status === 'unavailable' && <p className="live-events-error" role="alert">No se pudo completar la búsqueda.</p>}
+          {visibleMatches.length > 0 && (
+            <EventList events={visibleMatches} label="Resultados de correlación en orden ascendente" onOpenCycle={onOpenCycle} />
+          )}
+          {search.next && <button type="button" className="module-back-button"
+            onClick={() => void runSearch(searchSelector.current, search.next)}>
+            Página siguiente
+          </button>}
+        </section>
+      )}
+
+      <h2>{family === 'all' ? 'Eventos recientes' : FAMILIES[family]}</h2>
       {visible.length > 0 && (
         <>
           <p className="live-events-context">{visible.length} de {events.length} eventos · Publicación más reciente primero · Hora local</p>
-          <ol className="live-events-list" aria-label="Eventos en orden descendente de publicación">
-            {visible.map((event) => {
-              const description = describeEvent(event)
-              return (
-                <li key={event.id} className="live-events-entry">
-                  <div className="live-events-entry-main">
-                    <strong>{event.data.messageType}</strong>
-                    <span>{FAMILIES[event.type]}</span>
-                    <span className="live-events-event-status">{event.data.status}</span>
-                  </div>
-                  {description && <p>{description}</p>}
-                  <div className="live-events-meta">
-                    <span>#{event.id}</span>
-                    <time dateTime={event.occurredAt}>{dateFormatter.format(new Date(event.occurredAt))}</time>
-                    <span>{ORIGINS[event.data.source]}</span>
-                    {event.cycleId !== null && <span>Ciclo {event.cycleId}</span>}
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
+          <EventList events={visible} label="Eventos en orden descendente de publicación" onOpenCycle={onOpenCycle} />
         </>
       )}
       {!failure && visible.length === 0 && (
@@ -181,7 +351,7 @@ function LiveEventsFeed({ subject, getAccessTokenSilently }) {
   )
 }
 
-export default function LiveEventsPanel({ subject, isAuthLoading, getAccessTokenSilently, onBack }) {
+export default function LiveEventsPanel({ subject, isAuthLoading, getAccessTokenSilently, onBack, onOpenCycle }) {
   const heading = useRef(null)
   useEffect(() => { heading.current?.focus() }, [])
 
@@ -194,7 +364,7 @@ export default function LiveEventsPanel({ subject, isAuthLoading, getAccessToken
         El ACK confirma recepción del mensaje. La liquidación se confirma con <code>swap-settled</code> procesado.
       </p>
       {isAuthLoading ? <p role="status">Cargando sesión…</p> : subject ? (
-        <LiveEventsFeed key={subject} subject={subject} getAccessTokenSilently={getAccessTokenSilently} />
+        <LiveEventsFeed key={subject} subject={subject} getAccessTokenSilently={getAccessTokenSilently} onOpenCycle={onOpenCycle} />
       ) : <p role="status">Inicia sesión para ver la actividad en vivo.</p>}
     </section>
   )

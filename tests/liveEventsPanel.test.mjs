@@ -22,9 +22,9 @@ function token(subject, refreshed = false) {
 }
 
 function frame(id, {
-  type = 'market', messageType = 'offer', status = 'PROCESSED', occurredAt = '2026-11-26T16:00:00Z',
+  type = 'market', messageType = 'offer', status = 'PROCESSED', source = 'INBOUND', cycleId = 'ciclo-1', occurredAt = '2026-11-26T16:00:00Z',
 } = {}) {
-  const data = JSON.stringify({ type, occurredAt, cycleId: 'ciclo-1', data: { source: 'INBOUND', messageType, status } })
+  const data = JSON.stringify({ type, occurredAt, cycleId, data: { source, messageType, status } })
   return `id: ${id}\nevent: ${type}\ndata: {"id":${id},${data.slice(1)}\n\n`
 }
 
@@ -64,7 +64,8 @@ async function mount(t, fetchResponse, initialProps = {}) {
   const root = createRoot(container)
   const requests = []
   t.mock.method(globalThis, 'fetch', async (url, init) => {
-    assert.equal(url, `${apiUrl}/events/stream`)
+    const expected = init.method === 'POST' ? 'search' : 'stream'
+    assert.equal(url, `${apiUrl}/events/${expected}`)
     requests.push(init)
     return fetchResponse(requests.length, init)
   })
@@ -241,3 +242,139 @@ test('a 401 clears the visible feed while Auth0 attempts renewal', async (t) => 
   await render({ subject: null })
   assert.match(connection(container), /Inicia sesión/)
 })
+
+
+function resultEvent(id, data = {}) {
+  return { id, type: 'saga', occurredAt: '2026-11-26T16:00:00Z', cycleId: 'ciclo-1',
+    data: { source: 'SAGA', messageType: 'saga-transition', status: 'WAITING', ...data } }
+}
+
+function searchSection(container) {
+  return container.querySelector('.live-events-search')
+}
+
+async function chooseSearchField(container, value) {
+  const select = searchSection(container).querySelector('select')
+  await act(async () => {
+    select.value = value
+    select.dispatchEvent(new window.Event('change', { bubbles: true }))
+  })
+}
+
+async function submitSearch(container, value) {
+  const form = searchSection(container).querySelector('form')
+  await act(async () => {
+    form.querySelector('input').value = value
+    form.requestSubmit()
+  })
+}
+
+test('renders saga and alert facts with labeled details, heartbeat freshness and no polling', async (t) => {
+  const feed = stream()
+  const opened = []
+  const { container, requests } = await mount(t, () => feed.response, { onOpenCycle: (id) => opened.push(id) })
+  await until(() => connection(container) === 'En vivo')
+  await act(async () => feed.send(
+    frame(40, {type: 'saga', source: 'SAGA', messageType: 'saga-transition', status: 'WAITING'}).repeat(2)
+    + frame(41, {type: 'alert', source: 'RECONCILIATION', messageType: 'ledger-wallet-delta', status: 'DIVERGENT'})
+    + frame(42, {type: 'alert', source: 'MONITORING', messageType: 'wallet-slow', status: 'OPEN', cycleId: null})
+    + frame(43, {type: 'wallet', messageType: 'swap-settled'})))
+  assert.equal(rows(container).length, 4)
+  assert.match(rows(container)[0].textContent, /Liquidación confirmada/)
+  assert.match(rows(container)[1].textContent, /Wallet lenta.*Aviso/)
+  assert.match(rows(container)[2].textContent, /Diferencia entre ledger y Wallet.*Alta/)
+  assert.doesNotMatch(rows(container)[2].textContent, /Liquidación confirmada/)
+  assert.match(rows(container)[3].textContent, /WAITING.*En espera/)
+  assert.match(container.textContent, /Retraso de entrega del último evento/)
+  await act(async () => feed.send(': heartbeat\n\n'))
+  assert.equal(rows(container).length, 4)
+  assert.match(container.textContent, /Última señal del flujo/)
+  await filter(container, 'saga')
+  assert.equal(rows(container).length, 1)
+  const detail = rows(container)[0].querySelector('details')
+  await act(async () => detail.querySelector('summary').click())
+  assert.equal(detail.open, true)
+  await act(async () => detail.querySelector('button').click())
+  assert.deepEqual(opened, ['ciclo-1'])
+  await filter(container, 'alert')
+  assert.equal(rows(container).length, 2)
+  assert.equal(requests.length, 1)
+})
+
+test('search posts private selectors, paginates separately and preserves the live cursor', async (t) => {
+  const live = stream()
+  const resumed = stream()
+  const secret = 'PRIVATE-IDPK-SENTINEL'
+  const queryRequests = []
+  let subscriptions = 0
+  const { container, requests } = await mount(t, (_, init) => {
+    if (init.method === 'GET') return (++subscriptions === 1 ? live : resumed).response
+    queryRequests.push(init)
+    const body = JSON.parse(init.body)
+    const rows = body.after ? [] : Array.from({ length: 100 }, (_, i) => resultEvent(100 + i, { idpk: secret }))
+    return Response.json({ events: rows, idpk: secret })
+  })
+  await until(() => connection(container) === 'En vivo')
+  await act(async () => live.send(frame(3)))
+  await chooseSearchField(container, 'idpk')
+  const input = searchSection(container).querySelector('input')
+  assert.equal(input.type, 'password')
+  assert.match(document.querySelector(`label[for="${input.id}"]`).textContent, /idpk/)
+  const location = window.location.href
+  await submitSearch(container, secret)
+  await until(() => queryRequests.length === 1 && /100 coincidencias/.test(searchSection(container).textContent))
+  assert.equal(input.value, '')
+  assert.deepEqual(JSON.parse(queryRequests[0].body), { idpk: secret })
+  assert.equal(queryRequests[0].credentials, 'omit')
+  assert.equal(queryRequests[0].redirect, 'error')
+  const header = queryRequests[0].headers.Authorization
+  assert.match(header, /^Bearer /)
+  const claims = JSON.parse(Buffer.from(header.split('.')[1], 'base64url').toString())
+  assert.equal(claims.sub, 'alice')
+  assert.equal(claims.scope, 'read:events')
+  assert.equal(window.location.href, location)
+  assert.doesNotMatch(container.textContent, /PRIVATE-IDPK/)
+  assert.doesNotMatch(JSON.stringify({ ...localStorage }), /PRIVATE-IDPK/)
+  const next = [...searchSection(container).querySelectorAll('button')].find((b) => b.textContent.trim() === 'Página siguiente')
+  await act(async () => next.click())
+  await until(() => /Sin coincidencias/.test(searchSection(container).textContent))
+  assert.deepEqual(JSON.parse(queryRequests[1].body), { idpk: secret, after: '199' })
+  await act(async () => live.end())
+  await until(() => subscriptions === 2)
+  assert.equal(requests.at(-1).headers['Last-Event-ID'], '3')
+})
+
+test('changing search fields aborts unwanted results and logs out without stale search data', async (t) => {
+  const live = stream()
+  let finishOld
+  const pending = new Promise((resolve) => { finishOld = resolve })
+  const { container, requests, render } = await mount(t, (number) => number === 1 ? live.response : pending)
+  await until(() => connection(container) === 'En vivo')
+  await submitSearch(container, 'ciclo-1')
+  await until(() => requests.length === 2)
+  await chooseSearchField(container, 'swapId')
+  assert.equal(requests[1].signal.aborted, true)
+  await act(async () => finishOld(Response.json({ events: [resultEvent(10)] })))
+  assert.equal(searchSection(container).querySelector('ol'), null)
+  await render({ subject: null })
+  assert.equal(searchSection(container), null)
+  assert.equal(live.cancellations(), 1)
+})
+
+for (const code of [401, 403]) {
+  test(`search HTTP ${code} closes the live feed and clears visible data`, async (t) => {
+    const live = stream()
+    const { container, requests, auth } = await mount(t,
+      (_, init) => init.method === 'GET' ? live.response : new Response(null, { status: code }))
+    await until(() => connection(container) === 'En vivo')
+    await act(async () => live.send(frame(9)))
+    assert.equal(rows(container).length, 1)
+    await submitSearch(container, 'ciclo-1')
+    await until(() => connection(container) === (code === 401 ? 'Sesión no válida' : 'Acceso denegado'))
+    assert.equal(live.cancellations(), 1)
+    assert.equal(searchSection(container), null)
+    assert.equal(rows(container).length, 0)
+    assert.equal(requests.filter((init) => init.method === 'POST').length, code === 401 ? 2 : 1)
+    assert.equal(auth.filter(({ cacheMode }) => cacheMode === 'off').length, code === 401 ? 1 : 0)
+  })
+}

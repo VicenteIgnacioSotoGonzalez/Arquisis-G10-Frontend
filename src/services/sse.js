@@ -1,5 +1,5 @@
 const EVENTS = new Set(['market', 'wallet', 'saga', 'alert'])
-const SOURCES = new Set(['INBOUND', 'OUTBOUND', 'RECONCILIATION'])
+const SOURCES = new Set(['INBOUND', 'OUTBOUND', 'RECONCILIATION', 'SAGA', 'MONITORING'])
 const MAX_ID = 9223372036854775807n
 const MAX_FRAME = 256_000
 const STORAGE_PREFIX = 'energyshark:sse:v1:'
@@ -18,7 +18,7 @@ export function setSseSession(subject, tokenProvider) {
 }
 
 /** Parse SSE lines across chunk boundaries, including CRLF and comments. */
-export function createSseParser(onMessage) {
+export function createSseParser(onMessage, onHeartbeat = () => {}) {
   let pending = ''
   let eventName = ''
   let dataLines = []
@@ -44,7 +44,10 @@ export function createSseParser(onMessage) {
 
     frameSize += line.length + 1
     if (frameSize > MAX_FRAME) throw new Error('SSE frame exceeds size limit')
-    if (line[0] === ':') return
+    if (line[0] === ':') {
+      if (line === ': heartbeat') onHeartbeat()
+      return
+    }
     const separator = line.indexOf(':')
     const field = separator === -1 ? line : line.slice(0, separator)
     let value = separator === -1 ? '' : line.slice(separator + 1)
@@ -102,29 +105,35 @@ function newerId(value, cursor) {
   return validId(value) && (!cursor || BigInt(value) > BigInt(cursor))
 }
 
+function parseEventJson(json) {
+  return JSON.parse(json, (key, value, context) => {
+    // Keep a large wire integer exact on clients supporting JSON source text.
+    if (key === 'id' && typeof value === 'number' && !Number.isSafeInteger(value)
+      && validId(context?.source)) return BigInt(context.source)
+    return value
+  })
+}
+
 function parseEvent(frame) {
-  if (!EVENTS.has(frame.event)) return null
-  let event
   try {
-    event = JSON.parse(frame.data, (key, value, context) => {
-      // Keep a large wire integer exact on clients supporting JSON source text.
-      if (key === 'id' && typeof value === 'number' && !Number.isSafeInteger(value)
-        && validId(context?.source)) return BigInt(context.source)
-      return value
-    })
+    const event = publicEvent(parseEventJson(frame.data))
+    return event?.type === frame.event && String(event.id) === frame.id ? event : null
   } catch {
     return null
   }
+}
+
+function publicEvent(event) {
   const id = event?.id
-  if (!(typeof id === 'bigint' || Number.isSafeInteger(id)) || String(id) !== frame.id
-    || event.type !== frame.event || typeof event.occurredAt !== 'string'
+  if (!(typeof id === 'bigint' || Number.isSafeInteger(id)) || !validId(String(id))
+    || !EVENTS.has(event.type) || typeof event.occurredAt !== 'string'
     || !event.occurredAt.endsWith('Z') || !Number.isFinite(Date.parse(event.occurredAt))
     || (event.cycleId !== null && typeof event.cycleId !== 'string')) return null
   const data = event.data
   if (!SOURCES.has(data?.source) || typeof data.messageType !== 'string' || typeof data.status !== 'string') return null
 
   return {
-    id: typeof id === 'bigint' ? frame.id : id,
+    id: typeof id === 'bigint' ? String(id) : id,
     type: event.type,
     occurredAt: event.occurredAt,
     cycleId: event.cycleId,
@@ -198,13 +207,13 @@ const AUTH_ERRORS = new Set(['login_required', 'consent_required', 'interaction_
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
 
-function streamUrl(origin) {
+function sseOrigin(origin) {
   // Require an origin so credentials, path prefixes and URL parameters cannot leak.
   const value = typeof origin === 'string' ? origin.trim() : ''
   if (/^https?:\/\/[^/@?#\\\s]+\/?$/i.test(value)) {
     try {
       const url = new URL(value)
-      if (url.protocol === 'https:' || LOCAL_HOSTS.has(url.hostname)) return url.origin + '/events/stream'
+      if (url.protocol === 'https:' || LOCAL_HOSTS.has(url.hostname)) return url.origin
     } catch {
       // Report invalid configuration without including the supplied value.
     }
@@ -216,6 +225,7 @@ function streamUrl(origin) {
 export function openSseFeed({
   apiUrl = import.meta.env?.VITE_SSE_ORIGIN,
   onEvent,
+  onHeartbeat,
   onStatus = () => {},
   onError = () => {},
   lastEventId = '',
@@ -226,7 +236,7 @@ export function openSseFeed({
   minRetryMs = 1000,
   maxRetryMs = 15000,
 } = {}) {
-  const url = streamUrl(apiUrl)
+  const url = sseOrigin(apiUrl) + '/events/stream'
   if (typeof onEvent !== 'function') throw new TypeError('onEvent is required')
   if (tokenProvider !== undefined && typeof tokenProvider !== 'function') throw new TypeError('tokenProvider is required')
 
@@ -251,7 +261,7 @@ export function openSseFeed({
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     const frames = []
-    const parser = createSseParser((frame) => frames.push(frame))
+    const parser = createSseParser((frame) => frames.push(frame), onHeartbeat)
     const cancel = () => { void reader.cancel().catch(() => {}) }
     signal.addEventListener('abort', cancel, { once: true })
     const timeLeft = expiresAt - Date.now()
@@ -402,7 +412,81 @@ export function openSseFeed({
 
   return {
     close: () => controller.abort(),
+    revoke() {
+      checkpoint?.clear()
+      invalidate()
+    },
     done: run(),
     getLastEventId: () => managed && boundSession !== session ? '' : cursor,
+  }
+}
+
+const SELECTORS = new Set(['cycleId', 'swapId', 'idpk'])
+const SEARCH_LIMIT = 100
+
+/** Search published events through the same account and origin as the live stream. */
+export async function searchSseEvents({
+  field,
+  value,
+  after = '',
+  signal,
+  apiUrl = import.meta.env?.VITE_SSE_ORIGIN,
+  fetchImpl = globalThis.fetch,
+}) {
+  if (!SELECTORS.has(field) || typeof value !== 'string' || !value.length
+    || Array.from(value).length > 256 || value.includes('\u0000') || (after !== '' && after !== '0' && !validId(after))) {
+    return { status: 'invalid' }
+  }
+  const url = sseOrigin(apiUrl) + '/events/search'
+  const bound = session
+  if (!bound) return { status: 'unauthorized' }
+
+  const cancellation = new AbortController()
+  const abort = () => cancellation.abort()
+  bound.connections.add(abort)
+  const deadlines = [cancellation.signal, AbortSignal.timeout(10000)]
+  if (signal) deadlines.push(signal)
+  const requestSignal = AbortSignal.any(deadlines)
+  const body = JSON.stringify(after ? { [field]: value, after } : { [field]: value })
+  try {
+    for (const forceRefresh of [false, true]) {
+      requestSignal.throwIfAborted()
+      const token = await bound.tokenProvider({ forceRefresh })
+      requestSignal.throwIfAborted()
+      const claims = tokenClaims(token)
+      if (claims?.sub !== bound.subject) return { status: 'unauthorized' }
+      if (claims.exp <= Date.now() / 1000) continue
+      const response = await fetchImpl(url, {
+        method: 'POST', signal: requestSignal, body,
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', Accept: 'application/json' },
+        mode: 'cors', credentials: 'omit', redirect: 'error', cache: 'no-store', referrerPolicy: 'no-referrer',
+      })
+      requestSignal.throwIfAborted()
+      if (!response.ok) {
+        void response.body?.cancel().catch(() => {})
+        if (response.status === 401) continue
+        if (response.status === 403) return { status: 'forbidden' }
+        if ([400, 413, 422].includes(response.status)) return { status: 'invalid' }
+        return { status: 'unavailable' }
+      }
+      const page = parseEventJson(await response.text())?.events
+      requestSignal.throwIfAborted()
+      if (Date.now() / 1000 >= claims.exp) continue
+      if (!Array.isArray(page) || page.length > SEARCH_LIMIT) return { status: 'unavailable' }
+      const events = []
+      let cursor = after
+      for (const row of page) {
+        const event = publicEvent(row)
+        if (!event || !newerId(String(event.id), cursor)) return { status: 'unavailable' }
+        cursor = String(event.id)
+        events.push(event)
+      }
+      return { status: 'ready', events, next: events.length === SEARCH_LIMIT ? cursor : '' }
+    }
+    return { status: 'unauthorized' }
+  } catch (error) {
+    return { status: AUTH_ERRORS.has(error?.error) ? 'unauthorized' : 'unavailable' }
+  } finally {
+    bound.connections.delete(abort)
   }
 }
