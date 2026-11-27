@@ -302,6 +302,54 @@
 .live-events-meta { margin-top: 4px; font-size: 0.875rem; }
 .live-events-event-status { font-size: 0.875rem; font-weight: 700; }
 
+.live-events-search {
+  margin: 18px 0 24px;
+  padding: 16px;
+  border: 1px solid #dfe7f0;
+  border-radius: 8px;
+}
+
+.live-events-search h2 { margin-top: 0; }
+
+.live-events-search-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.live-events-search-form .live-events-filter,
+.live-events-search-form input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.live-events-search-form input {
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid #9baec4;
+  border-radius: 8px;
+  color: #17283e;
+  font: inherit;
+}
+
+.live-events-detail { margin-top: 8px; }
+.live-events-detail summary { cursor: pointer; width: fit-content; }
+
+.live-events-severity {
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #754600;
+  background: #fff1d8;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.live-events-severity[data-severity="Alta"] {
+  color: #8d2920;
+  background: #fdeadf;
+}
+
 .module-back-button {
   min-height: 36px;
   padding: 7px 13px;

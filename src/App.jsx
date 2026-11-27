@@ -128,6 +128,10 @@ function App() {
           <LiveEventsPanel
             subject={isAuthenticated ? user?.sub : null}
             isAuthLoading={isAuthLoading}
+            onOpenCycle={(cycleId) => {
+              setShowLiveEvents(false)
+              setSelectedCycleId(cycleId)
+            }}
             onBack={() => setShowLiveEvents(false)}
           />
         </main>

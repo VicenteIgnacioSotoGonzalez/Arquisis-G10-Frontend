@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createSseParser, openSseFeed, setSseSession } from '../src/services/sse.js'
+import { createSseParser, openSseFeed, searchSseEvents, setSseSession } from '../src/services/sse.js'
 
 const body = (text) => new ReadableStream({
   start(controller) {
@@ -516,4 +516,20 @@ test('an active stream reaching JWT expiry reconnects with a fresh token and the
   assert.equal(cancellations, 1)
   assert.deepEqual(refresh, [false, true])
   assert.deepEqual(requests, [['Bearer ' + firstToken, undefined], ['Bearer ' + freshToken, '23']])
+})
+
+
+test('search preserves large IDs and refuses an unordered or duplicated page', async (t) => {
+  t.after(() => setSseSession(null))
+  setSseSession('alice', async () => jwt('alice'))
+  const id = '9223372036854775807'
+  const event = frame(id, 'market').split('\n')[2].slice(6)
+  const page = async () => new Response('{"events":[' + event + ']}')
+  const options = { apiUrl, field: 'swapId', value: 'swap-test', after: '9223372036854775806' }
+  const result = await searchSseEvents({ ...options, fetchImpl: page })
+  assert.equal(result.status, 'ready')
+  assert.equal(result.events[0].id, id)
+  const duplicate = await searchSseEvents({ ...options,
+    fetchImpl: async () => new Response('{"events":[' + event + ',' + event + ']}') })
+  assert.equal(duplicate.status, 'unavailable')
 })
